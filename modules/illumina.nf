@@ -44,7 +44,6 @@ process indexReference {
         """
         ln -s ${ref} ref.fa
         bwa index ref.fa
-        samtools faidx ref.fa
         """
 }
 
@@ -117,6 +116,7 @@ process callVariants {
 
     script:
         """
+        samtools faidx ${ref}
         samtools mpileup -A -d 0 --reference ${ref} -B -Q 0 ${bam} |\
         ivar variants -r ${ref} -m ${params.ivarMinDepth} -p ${sampleName}.variants -q ${params.ivarMinVariantQuality} -t ${params.ivarMinFreqThreshold}
         """
