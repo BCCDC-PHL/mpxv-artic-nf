@@ -44,6 +44,7 @@ process indexReference {
         """
         ln -s ${ref} ref.fa
         bwa index ref.fa
+        samtools faidx ref.fa
         """
 }
 
