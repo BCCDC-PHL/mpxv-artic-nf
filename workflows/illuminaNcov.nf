@@ -6,6 +6,7 @@ nextflow.preview.dsl = 2
 // import modules
 include {articDownloadScheme } from '../modules/artic.nf' 
 include {readTrimming} from '../modules/illumina.nf' 
+include {filterResidualAdapters} from '../modules/illumina.nf' 
 include {indexReference} from '../modules/illumina.nf'
 include {readMapping} from '../modules/illumina.nf' 
 include {trimPrimerSequences} from '../modules/illumina.nf' 
@@ -90,7 +91,9 @@ workflow sequenceAnalysis {
     main:
       readTrimming(ch_filePairs)
 
-      readMapping(readTrimming.out.combine(ch_preparedRef))
+      filterResidualAdapters(readTrimming.out)
+
+      readMapping(filterResidualAdapters.out.combine(ch_preparedRef))
 
       trimPrimerSequences(readMapping.out.combine(ch_bedFile))
 
