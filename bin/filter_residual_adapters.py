@@ -62,6 +62,9 @@ if __name__ == '__main__':
     # Illumina adapters that are occasionally leftover in reads
     S7 = "CCGAGCCCACGAGAC"
     P7 = "ATCTCGTATGCCGTCTTCTGCTTG"
-    filter_sequences = [ S7, P7 ]
+
+    # require a minimum match between read and adapter
+    min_length = 10
+    filter_sequences = [ S7[0:min_length], P7[0:min_length] ]
 
     filter_reads(filter_sequences, args.input_R1, args.input_R2, output_R1, output_R2)
