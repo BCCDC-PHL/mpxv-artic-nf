@@ -8,7 +8,22 @@ import argparse
 def require_extension(filename, ext):
     assert(args.input_R1[-len(ext):] == ext)
 
-def filter_reads(filter_sequences, input_R1_fp, input_R2_fp, output_R1_fp, output_R2_fp):
+def contains_adapter(read_sequence, adapter_sequence, min_match_length):
+    # discard all reads that contain the full adapter 
+    if adapter_sequence in read_sequence:
+        return True
+
+    # discard all reads where the suffix of length min_match_length is contained within the adapter
+    # this handles the case where there is a fairly good adapter match that is truncated
+    # by the end of the read
+    rl = len(read_sequence)
+    if rl >= min_match_length:
+        read_suffix = read_sequence[(rl - min_match_length):]
+        if read_suffix in adapter_sequence:
+            return True
+    return False
+
+def filter_reads(filter_sequences, min_match_length, input_R1_fp, input_R2_fp, output_R1_fp, output_R2_fp):
     
     input_R1 = pysam.FastxFile(input_R1_fp)
     input_R2 = pysam.FastxFile(input_R2_fp)
@@ -22,7 +37,7 @@ def filter_reads(filter_sequences, input_R1_fp, input_R2_fp, output_R1_fp, outpu
         
         discard = False
         for f in filter_sequences:
-            if f in R1.sequence or f in R2.sequence:
+            if contains_adapter(R1.sequence, f, min_match_length) or contains_adapter(R2.sequence, f, min_match_length):
                 discard = True
                 break
 
@@ -65,6 +80,6 @@ if __name__ == '__main__':
 
     # require a minimum match between read and adapter
     min_length = 10
-    filter_sequences = [ S7[0:min_length], P7[0:min_length] ]
+    filter_sequences = [ S7, P7 ]
 
-    filter_reads(filter_sequences, args.input_R1, args.input_R2, output_R1, output_R2)
+    filter_reads(filter_sequences, min_length, args.input_R1, args.input_R2, output_R1, output_R2)
