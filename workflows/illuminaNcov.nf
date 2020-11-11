@@ -22,10 +22,6 @@ include {bamToCram} from '../modules/out.nf'
 
 include {collateSamples} from '../modules/upload.nf'
 
-// import subworkflows
-include {CLIMBrsync} from './upload.nf'
-
-
 workflow prepareReferenceFiles {
     // Get reference fasta
     if (params.ref) {
@@ -142,16 +138,6 @@ workflow ncovIllumina {
 
       // Actually do analysis
       sequenceAnalysis(performHostFilter.out, prepareReferenceFiles.out.bwaindex, prepareReferenceFiles.out.bedfile)
-
-      // Upload files to CLIMB
-      if ( params.upload ) {
-        
-        Channel.fromPath("${params.CLIMBkey}")
-               .set{ ch_CLIMBkey }
-      
-        CLIMBrsync(sequenceAnalysis.out.qc_pass, ch_CLIMBkey )
-      }
-
 }
 
 workflow ncovIlluminaCram {
