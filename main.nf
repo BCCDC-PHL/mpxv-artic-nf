@@ -71,7 +71,6 @@ if ( ! params.prefix ) {
 
 // main workflow
 workflow {
-
    if ( params.illumina ) {
        if (params.cram) {
            Channel.fromPath( "${params.directory}/**.cram" )
