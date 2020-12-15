@@ -101,7 +101,7 @@ workflow sequenceAnalysis {
 
       alignConsensusToReference(makeConsensus.out.combine(ch_preparedRef.map{ it[0] }))
 
-      trimUTRFromAlignment(alignConsensus.out)
+      trimUTRFromAlignment(alignConsensusToReference.out)
 
       makeQCCSV(trimPrimerSequences.out.ptrim.join(makeConsensus.out, by: 0)
                                    .combine(ch_preparedRef.map{ it[0] }))
