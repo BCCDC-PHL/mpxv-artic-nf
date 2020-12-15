@@ -6,12 +6,14 @@ nextflow.preview.dsl = 2
 // import modules
 include {articDownloadScheme } from '../modules/artic.nf' 
 include {readTrimming} from '../modules/illumina.nf' 
+include {filterResidualAdapters} from '../modules/illumina.nf' 
 include {indexReference} from '../modules/illumina.nf'
 include {readMapping} from '../modules/illumina.nf' 
 include {trimPrimerSequences} from '../modules/illumina.nf' 
 include {callVariants} from '../modules/illumina.nf'
 include {makeConsensus} from '../modules/illumina.nf' 
 include {cramToFastq} from '../modules/illumina.nf'
+include {performHostFilter} from '../modules/utils'
 
 include {makeQCCSV} from '../modules/qc.nf'
 include {writeQCSummaryCSV} from '../modules/qc.nf'
@@ -19,10 +21,6 @@ include {writeQCSummaryCSV} from '../modules/qc.nf'
 include {bamToCram} from '../modules/out.nf'
 
 include {collateSamples} from '../modules/upload.nf'
-
-// import subworkflows
-include {CLIMBrsync} from './upload.nf'
-
 
 workflow prepareReferenceFiles {
     // Get reference fasta
@@ -89,7 +87,9 @@ workflow sequenceAnalysis {
     main:
       readTrimming(ch_filePairs)
 
-      readMapping(readTrimming.out.combine(ch_preparedRef))
+      filterResidualAdapters(readTrimming.out)
+
+      readMapping(filterResidualAdapters.out.combine(ch_preparedRef))
 
       trimPrimerSequences(readMapping.out.combine(ch_bedFile))
 
@@ -133,18 +133,11 @@ workflow ncovIllumina {
       // Build or download fasta, index and bedfile as required
       prepareReferenceFiles()
       
-      // Actually do analysis
-      sequenceAnalysis(ch_filePairs, prepareReferenceFiles.out.bwaindex, prepareReferenceFiles.out.bedfile)
- 
-      // Upload files to CLIMB
-      if ( params.upload ) {
-        
-        Channel.fromPath("${params.CLIMBkey}")
-               .set{ ch_CLIMBkey }
-      
-        CLIMBrsync(sequenceAnalysis.out.qc_pass, ch_CLIMBkey )
-      }
+      // filter out any host reads
+      performHostFilter(ch_filePairs)
 
+      // Actually do analysis
+      sequenceAnalysis(performHostFilter.out, prepareReferenceFiles.out.bwaindex, prepareReferenceFiles.out.bedfile)
 }
 
 workflow ncovIlluminaCram {
