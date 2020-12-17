@@ -2,6 +2,7 @@ on:
   pull_request:
     branches:
     - master
+    - development
 name: master Pull Request
 jobs:
   test:
