@@ -27,6 +27,35 @@ process readTrimming {
     """
 }
 
+process filterResidualAdapters {
+    /**
+    * Discard reads that contain residual adapter sequences that indicate trimming may have failed
+    * @input tuple(sampleName, path(forward), path(reverse))
+    * @output untrim_filter_out tuple(sampleName, path("*_val_1.fq.gz"), path("*_val_2.fq.gz"))
+    */
+
+    tag { sampleName }
+
+    publishDir "${params.outdir}/${task.process.replaceAll(":","_")}", pattern: '*{1,2}_posttrim_filter.fq.gz', mode: 'copy'
+
+    cpus 2
+
+    input:
+    tuple(sampleName, path(forward), path(reverse))
+
+    output:
+    tuple(sampleName, path("*1_posttrim_filter.fq.gz"), path("*2_posttrim_filter.fq.gz")) optional true
+
+    script:
+    """
+    if [[ \$(gunzip -c ${forward} | head -n4 | wc -l) -eq 0 ]]; then
+      exit 0
+    else
+      filter_residual_adapters.py --input_R1 $forward --input_R2 $reverse 
+    fi
+    """
+}
+
 process indexReference {
     /**
     * Indexes reference fasta file in the scheme repo using bwa.
@@ -59,18 +88,19 @@ process readMapping {
 
     label 'largecpu'
 
-    publishDir "${params.outdir}/${task.process.replaceAll(":","_")}", pattern: "${sampleName}.sorted.bam", mode: 'copy'
+    publishDir "${params.outdir}/${task.process.replaceAll(":","_")}", pattern: "${sampleName}.sorted{.bam,.bam.bai}", mode: 'copy'
 
     input:
         tuple sampleName, path(forward), path(reverse), path(ref), path("*")
 
     output:
-        tuple(sampleName, path("${sampleName}.sorted.bam"))
+        tuple(sampleName, path("${sampleName}.sorted.bam"), path("${sampleName}.sorted.bam.bai"))
 
     script:
         """
         bwa mem -t ${task.cpus} ${ref} ${forward} ${reverse} | \
         samtools sort -o ${sampleName}.sorted.bam
+        samtools index ${sampleName}.sorted.bam
         """
 }
 
@@ -78,15 +108,15 @@ process trimPrimerSequences {
 
     tag { sampleName }
 
-    publishDir "${params.outdir}/${task.process.replaceAll(":","_")}", pattern: "${sampleName}.mapped.bam", mode: 'copy'
-    publishDir "${params.outdir}/${task.process.replaceAll(":","_")}", pattern: "${sampleName}.mapped.primertrimmed.sorted.bam", mode: 'copy'
+    publishDir "${params.outdir}/${task.process.replaceAll(":","_")}", pattern: "${sampleName}.mapped{.bam,.bam.bai}", mode: 'copy'
+    publishDir "${params.outdir}/${task.process.replaceAll(":","_")}", pattern: "${sampleName}.mapped.primertrimmed.sorted{.bam,.bam.bai}", mode: 'copy'
 
     input:
-    tuple sampleName, path(bam), path(bedfile)
+    tuple sampleName, path(bam), path(bam_index), path(bedfile)
 
     output:
-    tuple sampleName, path("${sampleName}.mapped.bam"), emit: mapped
-    tuple sampleName, path("${sampleName}.mapped.primertrimmed.sorted.bam" ), emit: ptrim
+    tuple sampleName, path("${sampleName}.mapped.bam"), path("${sampleName}.mapped.bam.bai"), emit: mapped
+    tuple sampleName, path("${sampleName}.mapped.primertrimmed.sorted.bam"), path("${sampleName}.mapped.primertrimmed.sorted.bam.bai" ), emit: ptrim
 
     script:
     if (params.allowNoprimer){
@@ -97,8 +127,9 @@ process trimPrimerSequences {
         """
         samtools view -F4 -o ${sampleName}.mapped.bam ${bam}
         samtools index ${sampleName}.mapped.bam
-        ${ivarCmd} -i ${sampleName}.mapped.bam -b ${bedfile} -m ${params.illuminaKeepLen} -q ${params.illuminaQualThreshold} -p ivar.out
+        ${ivarCmd} -i ${sampleName}.mapped.bam -b ${bedfile} -m ${params.illuminaKeepLen} -q ${params.illuminaQualThreshold} -f ${params.primer_pairs_tsv} -p ivar.out
         samtools sort -o ${sampleName}.mapped.primertrimmed.sorted.bam ivar.out.bam
+        samtools index ${sampleName}.mapped.primertrimmed.sorted.bam
         """
 }
 
@@ -109,13 +140,14 @@ process callVariants {
     publishDir "${params.outdir}/${task.process.replaceAll(":","_")}", pattern: "${sampleName}.variants.tsv", mode: 'copy'
 
     input:
-    tuple(sampleName, path(bam), path(ref))
+    tuple(sampleName, path(bam), path(bam_index), path(ref))
 
     output:
     tuple sampleName, path("${sampleName}.variants.tsv")
 
     script:
         """
+        samtools faidx ${ref}
         samtools mpileup -A -d 0 --reference ${ref} -B -Q 0 ${bam} |\
         ivar variants -r ${ref} -m ${params.ivarMinDepth} -p ${sampleName}.variants -q ${params.ivarMinVariantQuality} -t ${params.ivarMinFreqThreshold}
         """
@@ -128,7 +160,7 @@ process makeConsensus {
     publishDir "${params.outdir}/${task.process.replaceAll(":","_")}", pattern: "${sampleName}.primertrimmed.consensus.fa", mode: 'copy'
 
     input:
-        tuple(sampleName, path(bam))
+        tuple(sampleName, path(bam), path(bam_index))
 
     output:
         tuple(sampleName, path("${sampleName}.primertrimmed.consensus.fa"))
@@ -163,3 +195,59 @@ process cramToFastq {
         """
 }
 
+process alignConsensusToReference {
+    /**
+    * Aligns consensus sequence against reference using mafft. Uses the --keeplength
+    * flag to guarantee that all alignments remain the same length as the reference.
+    */
+
+    tag { sampleName }
+
+    publishDir "${params.outdir}/${task.process.replaceAll(":","_")}", pattern: "${sampleName}.primertrimmed.consensus.aln.fa", mode: 'copy'
+
+    input:
+        tuple(sampleName, path(consensus), path(reference))
+
+    output:
+        tuple(sampleName, path("${sampleName}.primertrimmed.consensus.aln.fa"))
+
+    script:
+        // Convert multi-line fasta to single line
+        awk_string = '/^>/ {printf("\\n%s\\n", $0); next; } { printf("%s", $0); }  END { printf("\\n"); }'
+        """
+        mafft \
+          --preservecase \
+          --keeplength \
+          --add \
+          ${consensus} \
+          ${reference} \
+          > ${sampleName}.with_ref.multi_line.alignment.fa
+        awk '${awk_string}' ${sampleName}.with_ref.multi_line.alignment.fa > ${sampleName}.with_ref.single_line.alignment.fa
+        tail -n 2 ${sampleName}.with_ref.single_line.alignment.fa > ${sampleName}.primertrimmed.consensus.aln.fa
+        """
+}
+
+process trimUTRFromAlignment {
+    /**
+    * Trim the aligned consensus to remove 3' and 5' UTR sequences.
+    */
+
+    tag { sampleName }
+
+    publishDir "${params.outdir}/${task.process.replaceAll(":","_")}", pattern: "${sampleName}.primertrimmed.consensus.aln.utr_trimmed.fa", mode: 'copy'
+
+    input:
+        tuple(sampleName, path(alignment))
+
+    output:
+        tuple(sampleName, path("${sampleName}.primertrimmed.consensus.aln.utr_trimmed.fa"))
+
+    script:
+    awk_string = '/^>/ { printf("%s\\n", $0); next; } { printf("%s", $0); } END { printf("\\n"); }'
+        """
+        echo -e "\$(head -n 1 ${alignment} | cut -c 2-):266-29674" > non_utr.txt
+        samtools faidx ${alignment}
+        samtools faidx -r non_utr.txt ${alignment} > ${sampleName}.primertrimmed.consensus.aln.utr_trimmed.multi_line.fa
+        awk '${awk_string}' ${sampleName}.primertrimmed.consensus.aln.utr_trimmed.multi_line.fa > ${sampleName}.primertrimmed.consensus.aln.utr_trimmed.fa
+        """
+}

@@ -6,12 +6,16 @@ nextflow.preview.dsl = 2
 // import modules
 include {articDownloadScheme } from '../modules/artic.nf' 
 include {readTrimming} from '../modules/illumina.nf' 
+include {filterResidualAdapters} from '../modules/illumina.nf' 
 include {indexReference} from '../modules/illumina.nf'
 include {readMapping} from '../modules/illumina.nf' 
 include {trimPrimerSequences} from '../modules/illumina.nf' 
 include {callVariants} from '../modules/illumina.nf'
 include {makeConsensus} from '../modules/illumina.nf' 
 include {cramToFastq} from '../modules/illumina.nf'
+include {alignConsensusToReference} from '../modules/illumina.nf'
+include {trimUTRFromAlignment} from '../modules/illumina.nf'
+include {performHostFilter} from '../modules/utils'
 
 include {makeQCCSV} from '../modules/qc.nf'
 include {writeQCSummaryCSV} from '../modules/qc.nf'
@@ -19,10 +23,6 @@ include {writeQCSummaryCSV} from '../modules/qc.nf'
 include {bamToCram} from '../modules/out.nf'
 
 include {collateSamples} from '../modules/upload.nf'
-
-// import subworkflows
-include {CLIMBrsync} from './upload.nf'
-
 
 workflow prepareReferenceFiles {
     // Get reference fasta
@@ -87,15 +87,24 @@ workflow sequenceAnalysis {
       ch_bedFile
 
     main:
-      readTrimming(ch_filePairs)
 
-      readMapping(readTrimming.out.combine(ch_preparedRef))
+      performHostFilter(ch_filePairs)
+
+      readTrimming(performHostFilter.out)
+
+      filterResidualAdapters(readTrimming.out)
+
+      readMapping(filterResidualAdapters.out.combine(ch_preparedRef))
 
       trimPrimerSequences(readMapping.out.combine(ch_bedFile))
 
       callVariants(trimPrimerSequences.out.ptrim.combine(ch_preparedRef.map{ it[0] }))     
 
       makeConsensus(trimPrimerSequences.out.ptrim)
+
+      alignConsensusToReference(makeConsensus.out.combine(ch_preparedRef.map{ it[0] }))
+
+      trimUTRFromAlignment(alignConsensusToReference.out)
 
       makeQCCSV(trimPrimerSequences.out.ptrim.join(makeConsensus.out, by: 0)
                                    .combine(ch_preparedRef.map{ it[0] }))
@@ -111,9 +120,7 @@ workflow sequenceAnalysis {
 
       writeQCSummaryCSV(qc.header.concat(qc.pass).concat(qc.fail).toList())
 
-      collateSamples(qc.pass.map{ it[0] }
-                           .join(makeConsensus.out, by: 0)
-                           .join(trimPrimerSequences.out.mapped))     
+      collateSamples(makeConsensus.out.join(performHostFilter.out.fastqPairs))
 
       if (params.outCram) {
         bamToCram(trimPrimerSequences.out.mapped.map{it[0] } 
@@ -132,19 +139,9 @@ workflow ncovIllumina {
     main:
       // Build or download fasta, index and bedfile as required
       prepareReferenceFiles()
-      
+
       // Actually do analysis
       sequenceAnalysis(ch_filePairs, prepareReferenceFiles.out.bwaindex, prepareReferenceFiles.out.bedfile)
- 
-      // Upload files to CLIMB
-      if ( params.upload ) {
-        
-        Channel.fromPath("${params.CLIMBkey}")
-               .set{ ch_CLIMBkey }
-      
-        CLIMBrsync(sequenceAnalysis.out.qc_pass, ch_CLIMBkey )
-      }
-
 }
 
 workflow ncovIlluminaCram {

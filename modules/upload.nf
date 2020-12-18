@@ -1,18 +1,17 @@
 process collateSamples {
     tag { sampleName }
 
-    publishDir "${params.outdir}/qc_pass_climb_upload/${params.prefix}", pattern: "${sampleName}", mode: 'copy'
+    publishDir "${params.outdir}/nml_upload/", pattern: "${params.prefix}/${sampleName}*", mode: 'copy'
 
     input:
-    tuple(sampleName, path(bam), path(fasta))
+    tuple(sampleName, path(fasta), path(fastq_r1), path(fastq_r2))
 
     output:
-    path("${sampleName}")
+    path("${params.prefix}/${sampleName}*")
 
     script:
     """
-    mkdir ${sampleName}
-    mv ${bam} ${fasta} ${sampleName}
+    mkdir ${params.prefix} && cp ${sampleName}* ${params.prefix}
     """
 }
 
@@ -28,21 +27,6 @@ process prepareUploadDirectory {
     script:
     """
     echo "dummy" > dummyfile
-    """
-}
-
-
-process uploadToCLIMB {
-    tag { params.prefix }
-
-    input:
-    tuple(path(sshkey), path(uploadDir))
-
-    output:
-
-    script:
-    """
-    rsync -Lav -e "ssh -i ${sshkey} -l ${params.CLIMBUser}" ${uploadDir} ${params.CLIMBHostname}:upload/
     """
 }
 
