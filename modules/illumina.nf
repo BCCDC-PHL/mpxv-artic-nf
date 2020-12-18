@@ -88,18 +88,19 @@ process readMapping {
 
     label 'largecpu'
 
-    publishDir "${params.outdir}/${task.process.replaceAll(":","_")}", pattern: "${sampleName}.sorted.bam", mode: 'copy'
+    publishDir "${params.outdir}/${task.process.replaceAll(":","_")}", pattern: "${sampleName}.sorted{.bam,.bam.bai}", mode: 'copy'
 
     input:
         tuple sampleName, path(forward), path(reverse), path(ref), path("*")
 
     output:
-        tuple(sampleName, path("${sampleName}.sorted.bam"))
+        tuple(sampleName, path("${sampleName}.sorted.bam"), path("${sampleName}.sorted.bam.bai"))
 
     script:
         """
         bwa mem -t ${task.cpus} ${ref} ${forward} ${reverse} | \
         samtools sort -o ${sampleName}.sorted.bam
+        samtools index ${sampleName}.sorted.bam
         """
 }
 
@@ -107,15 +108,15 @@ process trimPrimerSequences {
 
     tag { sampleName }
 
-    publishDir "${params.outdir}/${task.process.replaceAll(":","_")}", pattern: "${sampleName}.mapped.bam", mode: 'copy'
-    publishDir "${params.outdir}/${task.process.replaceAll(":","_")}", pattern: "${sampleName}.mapped.primertrimmed.sorted.bam", mode: 'copy'
+    publishDir "${params.outdir}/${task.process.replaceAll(":","_")}", pattern: "${sampleName}.mapped{.bam,.bam.bai}", mode: 'copy'
+    publishDir "${params.outdir}/${task.process.replaceAll(":","_")}", pattern: "${sampleName}.mapped.primertrimmed.sorted{.bam,.bam.bai}", mode: 'copy'
 
     input:
-    tuple sampleName, path(bam), path(bedfile)
+    tuple sampleName, path(bam), path(bam_index), path(bedfile)
 
     output:
-    tuple sampleName, path("${sampleName}.mapped.bam"), emit: mapped
-    tuple sampleName, path("${sampleName}.mapped.primertrimmed.sorted.bam" ), emit: ptrim
+    tuple sampleName, path("${sampleName}.mapped.bam"), path("${sampleName}.mapped.bam.bai"), emit: mapped
+    tuple sampleName, path("${sampleName}.mapped.primertrimmed.sorted.bam"), path("${sampleName}.mapped.primertrimmed.sorted.bam.bai" ), emit: ptrim
 
     script:
     if (params.allowNoprimer){
@@ -128,6 +129,7 @@ process trimPrimerSequences {
         samtools index ${sampleName}.mapped.bam
         ${ivarCmd} -i ${sampleName}.mapped.bam -b ${bedfile} -m ${params.illuminaKeepLen} -q ${params.illuminaQualThreshold} -f ${params.primer_pairs_tsv} -p ivar.out
         samtools sort -o ${sampleName}.mapped.primertrimmed.sorted.bam ivar.out.bam
+        samtools index ${sampleName}.mapped.primertrimmed.sorted.bam
         """
 }
 
@@ -138,7 +140,7 @@ process callVariants {
     publishDir "${params.outdir}/${task.process.replaceAll(":","_")}", pattern: "${sampleName}.variants.tsv", mode: 'copy'
 
     input:
-    tuple(sampleName, path(bam), path(ref))
+    tuple(sampleName, path(bam), path(bam_index), path(ref))
 
     output:
     tuple sampleName, path("${sampleName}.variants.tsv")
@@ -158,7 +160,7 @@ process makeConsensus {
     publishDir "${params.outdir}/${task.process.replaceAll(":","_")}", pattern: "${sampleName}.primertrimmed.consensus.fa", mode: 'copy'
 
     input:
-        tuple(sampleName, path(bam))
+        tuple(sampleName, path(bam), path(bam_index))
 
     output:
         tuple(sampleName, path("${sampleName}.primertrimmed.consensus.fa"))
