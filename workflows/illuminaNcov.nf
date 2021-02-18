@@ -16,6 +16,7 @@ include {cramToFastq} from '../modules/illumina.nf'
 include {alignConsensusToReference} from '../modules/illumina.nf'
 include {trimUTRFromAlignment} from '../modules/illumina.nf'
 include {performHostFilter} from '../modules/utils'
+include {downsampleFastq} from '../modules/utils'
 
 include {makeQCCSV} from '../modules/qc.nf'
 include {writeQCSummaryCSV} from '../modules/qc.nf'
@@ -90,7 +91,9 @@ workflow sequenceAnalysis {
 
       performHostFilter(ch_filePairs)
 
-      readTrimming(performHostFilter.out)
+      downsampleFastq(performHostFilter.out)
+
+      readTrimming(downsampleFastq.out)
 
       filterResidualAdapters(readTrimming.out)
 
