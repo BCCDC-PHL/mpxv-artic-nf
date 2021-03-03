@@ -33,8 +33,8 @@ process downsampleAmplicons {
 
     script:
         """
-        downsample_amplicons.py --bed ${bedfile} --depth ${params.downsampleDepth) --mapping-quality ${params.downsampleMappingQuality} --amplicon-subdivisions ${params.downsampleAmpliconSubdivisions}  ${trimmed_bam} | \
-            samtools sort - -o ${sampleId}.primertrimmed.downsampled.sorted.bam
-        samtools index ${sampleId}.primertrimmed.downsampled.sorted.bam
+        downsample_amplicons.py --bed ${bedfile} --depth ${params.downsampleDepth} --mapping-quality ${params.downsampleMappingQuality} --amplicon-subdivisions ${params.downsampleAmpliconSubdivisions}  ${trimmed_bam} | \
+            samtools sort - -o ${sampleId}.mapped.primertrimmed.downsampled.sorted.bam
+        samtools index ${sampleId}.mapped.primertrimmed.downsampled.sorted.bam
         """
 }
