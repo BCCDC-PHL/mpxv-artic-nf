@@ -16,6 +16,7 @@ include {cramToFastq} from '../modules/illumina.nf'
 include {alignConsensusToReference} from '../modules/illumina.nf'
 include {trimUTRFromAlignment} from '../modules/illumina.nf'
 include {performHostFilter} from '../modules/utils'
+include {downsampleAmplicons} from '../modules/utils'
 
 include {makeQCCSV} from '../modules/qc.nf'
 include {writeQCSummaryCSV} from '../modules/qc.nf'
@@ -98,7 +99,9 @@ workflow sequenceAnalysis {
 
       trimPrimerSequences(readMapping.out.combine(ch_bedFile))
 
-      callVariants(trimPrimerSequences.out.ptrim.combine(ch_preparedRef.map{ it[0] }))     
+      downsampleAmplicons(trimPrimerSequences.out.ptrim.combine(ch_bedFile))
+
+      callVariants(downsampleAmplicons.out.combine(ch_preparedRef.map{ it[0] }))     
 
       makeConsensus(trimPrimerSequences.out.ptrim)
 
@@ -106,7 +109,7 @@ workflow sequenceAnalysis {
 
       trimUTRFromAlignment(alignConsensusToReference.out)
 
-      makeQCCSV(trimPrimerSequences.out.ptrim.join(makeConsensus.out, by: 0)
+      makeQCCSV(downsampleAmplicons.out.join(makeConsensus.out, by: 0)
                                    .combine(ch_preparedRef.map{ it[0] }))
 
       makeQCCSV.out.csv.splitCsv()
