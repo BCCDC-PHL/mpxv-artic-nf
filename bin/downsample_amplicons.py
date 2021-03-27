@@ -9,6 +9,27 @@ import sys
 import pysam
 
 from collections import defaultdict
+from functools import reduce
+
+
+def get_idxstats(bam_path):
+    idxstats = {
+        "ref_name": "",
+        "seq_length": 0,
+        "num_mapped_segments": 0,
+        "num_unmapped_segments": 0,
+    }
+
+    idxstats_out = pysam.idxstats(bam_path).strip().split('\t')
+    idxstats_out[3] = idxstats_out[3].split('\n')[0]
+
+    idxstats['ref_name'] = idxstats_out[0]
+    idxstats['seq_length'] = int(idxstats_out[1])
+    idxstats['num_mapped_segments'] = int(idxstats_out[2])
+    idxstats['num_unmapped_segments'] = int(idxstats_out[3])
+
+    return idxstats
+
 
 
 def merge_primers(p1, p2):
@@ -189,6 +210,9 @@ def main(args):
     """
     """
 
+    idxstats = get_idxstats(args.bam)
+    total_reads = idxstats['num_mapped_segments'] + idxstats['num_unmapped_segments']
+
     # open the primer scheme and get the pools
     bed = read_bed_file(args.bed)
     
@@ -218,19 +242,23 @@ def main(args):
 
     for segment, mate_segment in read_pair_generator(infile):
         if segment.mapping_quality < args.mapping_quality:
+            reads_discarded += 2
             continue
         if not segment.is_proper_pair:
+            reads_discarded += 2
             continue
         if segment.is_unmapped or segment.is_supplementary:
+            reads_discarded += 2
             continue
         if not segment.is_paired or segment.mate_is_unmapped:
+            reads_discarded += 2
             continue
 
         checkpoints_under_segment = list(filter(lambda cp: segment.reference_start <= cp and segment.reference_end >= cp, genome_checkpoints))
         checkpoints_under_mate_segment = list(filter(lambda cp: mate_segment.reference_start <= cp and mate_segment.reference_end >= cp, genome_checkpoints))
         checkpoints_under_both_segments = checkpoints_under_segment + checkpoints_under_mate_segment
         checkpoint_depths = [depths[checkpoint] for checkpoint in checkpoints_under_both_segments]
-        checkpoints_achieved_required_depth = [True if depths[checkpoint] >= (args.depth * 0.5) else False for checkpoint in checkpoints_under_both_segments]
+        checkpoints_achieved_required_depth = [True if depths[checkpoint] >= args.min_depth else False for checkpoint in checkpoints_under_both_segments]
         
         if not all(checkpoints_achieved_required_depth):
             outfile.write(segment)
@@ -244,15 +272,15 @@ def main(args):
 
         reads_processed += 2
 
-        if reads_processed % 10000 == 0:
+        if reads_processed % 1000 == 0:
             genome_checkpoint_depths = [depths[checkpoint] for checkpoint in genome_checkpoints]
-            genome_checkpoints_achieved_required_depth = [True if depth >= (args.depth * 0.5) else False for depth in genome_checkpoint_depths]
+            genome_checkpoints_achieved_required_depth = [True if depth >= args.min_depth else False for depth in genome_checkpoint_depths]
             if all(genome_checkpoints_achieved_required_depth):
                 break
 
-    print("reads processed: " + str(reads_processed), file=sys.stderr)
-    print("reads written: " + str(reads_written), file=sys.stderr)
-    print("reads discarded: " + str(reads_discarded), file=sys.stderr)
+    print('\t'.join(["total_input_reads","reads_processed","reads_written", "reads_discarded"]), file=sys.stderr)
+    print('\t'.join([str(total_reads), str(reads_processed), str(reads_written), str(reads_discarded)]), file=sys.stderr)
+
     # close up the file handles
     infile.close()
     outfile.close()
@@ -263,7 +291,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Downsample alignments from an amplicon scheme.')
     parser.add_argument('bam', help='bam file containing the alignment')
     parser.add_argument('--bed', help='BED file containing the amplicon scheme')
-    parser.add_argument('--depth', type=int, default=200, help='Subsample to n coverage')
+    parser.add_argument('--min-depth', type=int, default=200, help='Subsample to n coverage')
     parser.add_argument('--mapping-quality', type=int, default=20, help='Minimum mapping quality to include read in output')
     parser.add_argument('--amplicon-subdivisions', type=int, default=3, help='How many times to divide amplicons to detect coverage')
     parser.add_argument('--verbose', action='store_true', help='Debug mode')
