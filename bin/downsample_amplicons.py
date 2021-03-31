@@ -282,7 +282,7 @@ def main(args):
             if all(genome_checkpoints_achieved_required_depth):
                 break
 
-    if reads_written > 0:
+    if total_reads > 0:
         downsampling_factor = reads_written / total_reads
     else:
         downsampling_factor = 0.0
