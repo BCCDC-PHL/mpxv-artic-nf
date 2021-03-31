@@ -16,6 +16,8 @@ include {cramToFastq} from '../modules/illumina.nf'
 include {alignConsensusToReference} from '../modules/illumina.nf'
 include {trimUTRFromAlignment} from '../modules/illumina.nf'
 include {performHostFilter} from '../modules/utils'
+include {downsampleAmplicons} from '../modules/utils'
+include {downsampledBamToFastq} from '../modules/utils'
 
 include {makeQCCSV} from '../modules/qc.nf'
 include {writeQCSummaryCSV} from '../modules/qc.nf'
@@ -98,16 +100,22 @@ workflow sequenceAnalysis {
 
       trimPrimerSequences(readMapping.out.combine(ch_bedFile))
 
-      callVariants(trimPrimerSequences.out.ptrim.combine(ch_preparedRef.map{ it[0] }))     
+      downsampleAmplicons(trimPrimerSequences.out.ptrim.combine(ch_bedFile))
 
-      makeConsensus(trimPrimerSequences.out.ptrim)
+      downsampledBamToFastq(downsampleAmplicons.out.alignment)
+
+      callVariants(downsampleAmplicons.out.alignment.combine(ch_preparedRef.map{ it[0] }))     
+
+      makeConsensus(downsampleAmplicons.out.alignment)
 
       alignConsensusToReference(makeConsensus.out.combine(ch_preparedRef.map{ it[0] }))
 
       trimUTRFromAlignment(alignConsensusToReference.out)
 
-      makeQCCSV(trimPrimerSequences.out.ptrim.join(makeConsensus.out, by: 0)
+      makeQCCSV(downsampleAmplicons.out.alignment.join(makeConsensus.out, by: 0)
                                    .combine(ch_preparedRef.map{ it[0] }))
+
+      downsampleAmplicons.out.summary.collectFile(keepHeader: true, sort: { it.text }, name: "${params.prefix}.downsampling.csv", storeDir: "${params.outdir}")
 
       makeQCCSV.out.csv.splitCsv()
                        .unique()
@@ -120,10 +128,10 @@ workflow sequenceAnalysis {
 
       writeQCSummaryCSV(qc.header.concat(qc.pass).concat(qc.fail).toList())
 
-      collateSamples(makeConsensus.out.join(performHostFilter.out.fastqPairs))
+      collateSamples(makeConsensus.out.join(downsampledBamToFastq.out.fastqPairs))
 
       if (params.outCram) {
-        bamToCram(trimPrimerSequences.out.mapped.map{it[0] } 
+        bamToCram(trimPrimerSequences.out.mapped.map{ it[0] } 
                         .join (trimPrimerSequences.out.ptrim.combine(ch_preparedRef.map{ it[0] })) )
 
       }

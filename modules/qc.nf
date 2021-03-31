@@ -28,6 +28,8 @@ process makeQCCSV {
 process writeQCSummaryCSV {
     tag { params.prefix }
 
+    executor 'local'
+
     input:
     val lines
 

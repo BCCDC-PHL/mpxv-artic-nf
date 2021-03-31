@@ -4,7 +4,7 @@
 nextflow.preview.dsl = 2
 
 // include modules
-include printHelp from './modules/help.nf'
+include {printHelp} from './modules/help.nf'
 
 // import subworkflows
 include {articNcovNanopore} from './workflows/articNcovNanopore.nf' 
