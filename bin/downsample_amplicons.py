@@ -243,15 +243,19 @@ def main(args):
     for segment, mate_segment in read_pair_generator(infile):
         if segment.mapping_quality < args.mapping_quality:
             reads_discarded += 2
+            reads_processed += 2
             continue
         if not segment.is_proper_pair:
             reads_discarded += 2
+            reads_processed += 2
             continue
         if segment.is_unmapped or segment.is_supplementary:
             reads_discarded += 2
+            reads_processed += 2
             continue
         if not segment.is_paired or segment.mate_is_unmapped:
             reads_discarded += 2
+            reads_processed += 2
             continue
 
         checkpoints_under_segment = list(filter(lambda cp: segment.reference_start <= cp and segment.reference_end >= cp, genome_checkpoints))
@@ -278,8 +282,13 @@ def main(args):
             if all(genome_checkpoints_achieved_required_depth):
                 break
 
-    print('\t'.join(["total_input_reads","reads_processed","reads_written", "reads_discarded"]), file=sys.stderr)
-    print('\t'.join([str(total_reads), str(reads_processed), str(reads_written), str(reads_discarded)]), file=sys.stderr)
+    if reads_written > 0:
+        downsampling_factor = reads_written / total_reads
+    else:
+        downsampling_factor = 0.0
+
+    print(','.join(["total_input_reads","reads_processed","reads_written", "reads_discarded", "downsampling_factor"]), file=sys.stderr)
+    print(','.join([str(total_reads), str(reads_processed), str(reads_written), str(reads_discarded), str(round(downsampling_factor, 4))]), file=sys.stderr)
 
     # close up the file handles
     infile.close()
