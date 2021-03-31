@@ -17,6 +17,7 @@ include {alignConsensusToReference} from '../modules/illumina.nf'
 include {trimUTRFromAlignment} from '../modules/illumina.nf'
 include {performHostFilter} from '../modules/utils'
 include {downsampleAmplicons} from '../modules/utils'
+include {downsampledBamToFastq} from '../modules/utils'
 
 include {makeQCCSV} from '../modules/qc.nf'
 include {writeQCSummaryCSV} from '../modules/qc.nf'
@@ -101,16 +102,20 @@ workflow sequenceAnalysis {
 
       downsampleAmplicons(trimPrimerSequences.out.ptrim.combine(ch_bedFile))
 
-      callVariants(downsampleAmplicons.out.combine(ch_preparedRef.map{ it[0] }))     
+      downsampledBamToFastq(downsampleAmplicons.out.alignment)
 
-      makeConsensus(trimPrimerSequences.out.ptrim)
+      callVariants(downsampleAmplicons.out.alignment.combine(ch_preparedRef.map{ it[0] }))     
+
+      makeConsensus(downsampleAmplicons.out.alignment)
 
       alignConsensusToReference(makeConsensus.out.combine(ch_preparedRef.map{ it[0] }))
 
       trimUTRFromAlignment(alignConsensusToReference.out)
 
-      makeQCCSV(downsampleAmplicons.out.join(makeConsensus.out, by: 0)
+      makeQCCSV(downsampleAmplicons.out.alignment.join(makeConsensus.out, by: 0)
                                    .combine(ch_preparedRef.map{ it[0] }))
+
+      downsampleAmplicons.out.summary.collectFile(keepHeader: true, sort: { it.text }, name: "${params.prefix}.downsampling.csv", storeDir: "${params.outdir}")
 
       makeQCCSV.out.csv.splitCsv()
                        .unique()
@@ -123,10 +128,10 @@ workflow sequenceAnalysis {
 
       writeQCSummaryCSV(qc.header.concat(qc.pass).concat(qc.fail).toList())
 
-      collateSamples(makeConsensus.out.join(performHostFilter.out.fastqPairs))
+      collateSamples(makeConsensus.out.join(downsampledBamToFastq.out.fastqPairs))
 
       if (params.outCram) {
-        bamToCram(trimPrimerSequences.out.mapped.map{it[0] } 
+        bamToCram(trimPrimerSequences.out.mapped.map{ it[0] } 
                         .join (trimPrimerSequences.out.ptrim.combine(ch_preparedRef.map{ it[0] })) )
 
       }
