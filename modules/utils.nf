@@ -59,3 +59,24 @@ process downsampledBamToFastq {
         samtools fastq -n -0 /dev/null -1 ${sampleId}_hostfiltered_downsampled_R1.fastq.gz -2 ${sampleId}_hostfiltered_downsampled_R2.fastq.gz -s ${sampleId}_hostfiltered_downsampled_S.fastq.gz
         """
 }
+
+process addCodonPositionToVariants {
+    cpus 1
+
+    executor 'local'
+
+    tag { sampleId }
+
+    publishDir "${params.outdir}/${task.process.replaceAll(":","_")}", pattern: "${sampleId}.variants.with_codon_pos.tsv", mode: 'copy'
+
+    input:
+        tuple val(sampleId), path(variants), path(gff)
+    output:
+        tuple val(sampleId), path("${sampleId}.variants.with_codon_pos.tsv")
+
+    script:
+    def gff_arg = gff.name == 'NO_FILE' ? "" : "-g ${gff}"
+        """
+        ivar_variants_add_codon_position.py ${gff_arg} ${variants} > ${sampleId}.variants.with_codon_pos.tsv
+        """
+}

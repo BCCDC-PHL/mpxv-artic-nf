@@ -15,9 +15,10 @@ include {makeConsensus} from '../modules/illumina.nf'
 include {cramToFastq} from '../modules/illumina.nf'
 include {alignConsensusToReference} from '../modules/illumina.nf'
 include {trimUTRFromAlignment} from '../modules/illumina.nf'
-include {performHostFilter} from '../modules/utils'
-include {downsampleAmplicons} from '../modules/utils'
-include {downsampledBamToFastq} from '../modules/utils'
+include {performHostFilter} from '../modules/utils.nf'
+include {downsampleAmplicons} from '../modules/utils.nf'
+include {downsampledBamToFastq} from '../modules/utils.nf'
+include {addCodonPositionToVariants} from '../modules/utils.nf'
 
 include {makeQCCSV} from '../modules/qc.nf'
 include {writeQCSummaryCSV} from '../modules/qc.nf'
@@ -76,9 +77,13 @@ workflow prepareReferenceFiles {
                          .set{ ch_bedFile }
     }
 
+    Channel.fromPath(params.gff)
+           .set{ ch_gff }
+
     emit:
       bwaindex = ch_preparedRef
       bedfile = ch_bedFile
+      gff = ch_gff
 }
 
 
@@ -87,6 +92,7 @@ workflow sequenceAnalysis {
       ch_filePairs
       ch_preparedRef
       ch_bedFile
+      ch_gff
 
     main:
 
@@ -104,7 +110,9 @@ workflow sequenceAnalysis {
 
       downsampledBamToFastq(downsampleAmplicons.out.alignment)
 
-      callVariants(downsampleAmplicons.out.alignment.combine(ch_preparedRef.map{ it[0] }))     
+      callVariants(downsampleAmplicons.out.alignment.combine(ch_preparedRef.map{ it[0] }).combine(ch_gff))
+
+      addCodonPositionToVariants(callVariants.out.combine(ch_gff))
 
       makeConsensus(downsampleAmplicons.out.alignment)
 
@@ -149,7 +157,7 @@ workflow ncovIllumina {
       prepareReferenceFiles()
 
       // Actually do analysis
-      sequenceAnalysis(ch_filePairs, prepareReferenceFiles.out.bwaindex, prepareReferenceFiles.out.bedfile)
+      sequenceAnalysis(ch_filePairs, prepareReferenceFiles.out.bwaindex, prepareReferenceFiles.out.bedfile, prepareReferenceFiles.out.gff)
 }
 
 workflow ncovIlluminaCram {
