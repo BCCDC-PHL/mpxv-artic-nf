@@ -9,7 +9,7 @@ process readTrimming {
 
     publishDir "${params.outdir}/${task.process.replaceAll(":","_")}", pattern: '*_val_{1,2}.fq.gz', mode: 'copy'
 
-    cpus 2
+    cpus 1
 
     input:
     tuple(sampleName, path(forward), path(reverse))
@@ -38,7 +38,7 @@ process filterResidualAdapters {
 
     publishDir "${params.outdir}/${task.process.replaceAll(":","_")}", pattern: '*{1,2}_posttrim_filter.fq.gz', mode: 'copy'
 
-    cpus 2
+    cpus 1
 
     input:
     tuple(sampleName, path(forward), path(reverse))
@@ -150,7 +150,7 @@ process callVariants {
         """
         samtools faidx ${ref}
         samtools mpileup -A -d 0 --reference ${ref} -B -Q 0 ${bam} |\
-        ivar variants -r ${ref} -m ${params.ivarMinDepth} -p ${sampleName}.variants -q ${params.ivarMinVariantQuality} -t ${params.ivarMinFreqThreshold} ${gff_arg}
+        ivar variants -r ${ref} -m ${params.varMinDepth} -p ${sampleName}.variants -q ${params.ivarMinVariantQuality} -t ${params.varMinFreqThreshold} ${gff_arg}
         """
 }
 
@@ -169,8 +169,63 @@ process makeConsensus {
     script:
         """
         samtools mpileup -aa -A -B -d ${params.mpileupDepth} -Q0 ${bam} | \
-        ivar consensus -t ${params.ivarFreqThreshold} -m ${params.ivarMinDepth} \
+        ivar consensus -t ${params.varFreqThreshold} -m ${params.varMinDepth} \
         -n N -p ${sampleName}.primertrimmed.consensus
+        """
+}
+
+process callConsensusFreebayes {
+
+    tag { sampleName }
+
+    publishDir "${params.outdir}/${task.process.replaceAll(":","_")}", pattern: "${sampleName}.consensus.fasta", mode: 'copy'
+    publishDir "${params.outdir}/${task.process.replaceAll(":","_")}", pattern: "${sampleName}.variants.norm.vcf", mode: 'copy'
+
+    input:
+    tuple val(sampleName), path(bam), path(bam_index), path(ref)
+
+    output:
+    tuple val(sampleName), path("${sampleName}.consensus.fasta"), emit: consensus
+    tuple val(sampleName), path("${sampleName}.variants.norm.vcf"), emit: variants
+
+    script:
+        """
+        # the sed is to fix the header until a release is made with this fix
+        # https://github.com/freebayes/freebayes/pull/549
+        freebayes -p 1 \
+                  -f ${ref} \
+                  -F 0.2 \
+                  -C 1 \
+                  --pooled-continuous \
+                  --min-coverage ${params.varMinDepth} \
+                  --gvcf --gvcf-dont-use-chunk true ${bam} | sed s/QR,Number=1,Type=Integer/QR,Number=1,Type=Float/ > ${sampleName}.gvcf
+
+        # make depth mask, split variants into ambiguous/consensus
+        # NB: this has to happen before bcftools norm or else the depth mask misses any bases exposed during normalization
+        process_gvcf.py -d ${params.varMinDepth} \
+                        -l ${params.varMinFreqThreshold} \
+                        -u ${params.varFreqThreshold} \
+                        -m ${sampleName}.mask.txt \
+                        -v ${sampleName}.variants.vcf \
+                        -c ${sampleName}.consensus.vcf ${sampleName}.gvcf
+
+        # normalize variant records into canonical VCF representation
+        for v in "variants" "consensus"; do
+            bcftools norm -f ${ref} ${sampleName}.\$v.vcf > ${sampleName}.\$v.norm.vcf
+        done
+
+        # split the consensus sites file into a set that should be IUPAC codes and all other bases, using the ConsensusTag in the VCF
+        for vt in "ambiguous" "fixed"; do
+            cat ${sampleName}.consensus.norm.vcf | awk -v vartag=ConsensusTag=\$vt '\$0 ~ /^#/ || \$0 ~ vartag' > ${sampleName}.\$vt.norm.vcf
+            bgzip -f ${sampleName}.\$vt.norm.vcf
+            tabix -f -p vcf ${sampleName}.\$vt.norm.vcf.gz
+        done
+
+        # apply ambiguous variants first using IUPAC codes. this variant set cannot contain indels or the subsequent step will break
+        bcftools consensus -f ${ref} -I ${sampleName}.ambiguous.norm.vcf.gz > ${sampleName}.ambiguous.fasta
+
+        # apply remaninng variants, including indels
+        bcftools consensus -f ${sampleName}.ambiguous.fasta -m ${sampleName}.mask.txt ${sampleName}.fixed.norm.vcf.gz | sed s/MN908947.3/${sampleName}/ > ${sampleName}.consensus.fasta
         """
 }
 
@@ -250,5 +305,27 @@ process trimUTRFromAlignment {
         samtools faidx ${alignment}
         samtools faidx -r non_utr.txt ${alignment} > ${sampleName}.primertrimmed.consensus.aln.utr_trimmed.multi_line.fa
         awk '${awk_string}' ${sampleName}.primertrimmed.consensus.aln.utr_trimmed.multi_line.fa > ${sampleName}.primertrimmed.consensus.aln.utr_trimmed.fa
+        """
+}
+
+process annotateVariantsVCF {
+    /**
+    */
+
+    tag { sampleName }
+
+    cpus 1
+
+    publishDir "${params.outdir}/${task.process.replaceAll(":","_")}", pattern: "${sampleName}.variants.norm.consequence.vcf", mode: 'copy'
+
+    input:
+        tuple val(sampleName), path(vcf), path(ref), path(gff)
+
+    output:
+        tuple val(sampleName), path("${sampleName}.variants.norm.consequence.vcf")
+
+    script:
+        """
+        bcftools csq -f ${ref} -g ${gff} ${vcf} -Ov -o ${sampleName}.variants.norm.consequence.vcf
         """
 }
