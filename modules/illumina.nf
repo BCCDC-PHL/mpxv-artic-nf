@@ -140,16 +140,17 @@ process callVariants {
     publishDir "${params.outdir}/${task.process.replaceAll(":","_")}", pattern: "${sampleName}.variants.tsv", mode: 'copy'
 
     input:
-    tuple(sampleName, path(bam), path(bam_index), path(ref))
+    tuple val(sampleName), path(bam), path(bam_index), path(ref), path(gff)
 
     output:
-    tuple sampleName, path("${sampleName}.variants.tsv")
+    tuple val(sampleName), path("${sampleName}.variants.tsv")
 
     script:
+    def gff_arg = gff.name == 'NO_FILE' ? "" : "-g ${gff}"
         """
         samtools faidx ${ref}
         samtools mpileup -A -d 0 --reference ${ref} -B -Q 0 ${bam} |\
-        ivar variants -r ${ref} -m ${params.ivarMinDepth} -p ${sampleName}.variants -q ${params.ivarMinVariantQuality} -t ${params.ivarMinFreqThreshold}
+        ivar variants -r ${ref} -m ${params.ivarMinDepth} -p ${sampleName}.variants -q ${params.ivarMinVariantQuality} -t ${params.ivarMinFreqThreshold} ${gff_arg}
         """
 }
 
