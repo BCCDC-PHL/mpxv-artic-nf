@@ -90,9 +90,9 @@ Important config options are:
 | `illuminaKeepLen`                | `50`     | Length of illumina reads to keep after primer trimming                                                              |
 | `illuminaQualThreshold`          | `20`     | Sliding window quality threshold for keeping reads after primer trimming (illumina)                                 |
 | `mpileupDepth`                   | `100000` | Mpileup depth for ivar                                                                                              |
-| `ivarFreqThreshold`              | `0.75`   | ivar frequency threshold for consensus variant                                                                      |
-| `ivarMinFreqThreshold            | `0.25`   | ivar frequency threshold for ambiguous variant                                                                      |
-| `ivarMinDepth`                   | `10`     | Minimum coverage depth to call variant                                                                              |
+| `varFreqThreshold`               | `0.75`   | ivar/freebayes frequency threshold for consensus variant                                                            |
+| `varMinFreqThreshold             | `0.25`   | ivar/freebayes frequency threshold for ambiguous variant                                                            |
+| `varMinDepth`                    | `10`     | Minimum coverage depth to call variant                                                                    |
 | `ivarMinVariantQuality`          | `20`     | ivear minimum mapping quality to call variant                                                                       |
 | `downsampleMappingQuality`       | `20`     | Exclude reads below this mapping quality while downsampling                                                         |
 | `downsampleAmpliconSubdivisions` | `3`      | Number of times amplicons are subdivided to determine locations of checkpoints to test for depth while downsampling |
