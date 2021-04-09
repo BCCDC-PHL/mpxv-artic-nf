@@ -316,16 +316,18 @@ process annotateVariantsVCF {
 
     cpus 1
 
-    publishDir "${params.outdir}/${task.process.replaceAll(":","_")}", pattern: "${sampleName}.variants.norm.consequence.vcf", mode: 'copy'
+    publishDir "${params.outdir}/${task.process.replaceAll(":","_")}", pattern: "${sampleName}.variants.norm.consequence.{vcf,tsv}", mode: 'copy'
 
     input:
         tuple val(sampleName), path(vcf), path(ref), path(gff)
 
     output:
-        tuple val(sampleName), path("${sampleName}.variants.norm.consequence.vcf")
+        tuple val(sampleName), path("${sampleName}.variants.norm.consequence.vcf"), emit: vcf
+        tuple val(sampleName), path("${sampleName}.variants.norm.consequence.tsv"), emit: tsv
 
     script:
         """
         bcftools csq -f ${ref} -g ${gff} ${vcf} -Ov -o ${sampleName}.variants.norm.consequence.vcf
+        bcftools csq -f ${ref} -g ${gff} ${vcf} -Ot -o ${sampleName}.variants.norm.consequence.tsv
         """
 }
