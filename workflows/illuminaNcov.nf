@@ -9,7 +9,9 @@ include {readTrimming} from '../modules/illumina.nf'
 include {filterResidualAdapters} from '../modules/illumina.nf' 
 include {indexReference} from '../modules/illumina.nf'
 include {readMapping} from '../modules/illumina.nf' 
-include {trimPrimerSequences} from '../modules/illumina.nf' 
+include {trimPrimerSequences} from '../modules/illumina.nf'
+include {callConsensusFreebayes} from '../modules/illumina.nf'
+include {annotateVariantsVCF} from '../modules/illumina.nf'
 include {callVariants} from '../modules/illumina.nf'
 include {makeConsensus} from '../modules/illumina.nf' 
 include {cramToFastq} from '../modules/illumina.nf'
@@ -114,13 +116,19 @@ workflow sequenceAnalysis {
 
       addCodonPositionToVariants(callVariants.out.combine(ch_gff))
 
+      callConsensusFreebayes(downsampleAmplicons.out.alignment.combine(ch_preparedRef.map{ it[0] }))
+
+      if (params.gff != 'NO_FILE') {
+        annotateVariantsVCF(callConsensusFreebayes.out.variants.combine(ch_preparedRef.map{ it[0] }).combine(ch_gff))
+      }
+      
       makeConsensus(downsampleAmplicons.out.alignment)
 
-      alignConsensusToReference(makeConsensus.out.combine(ch_preparedRef.map{ it[0] }))
+      alignConsensusToReference(callConsensusFreebayes.out.consensus.combine(ch_preparedRef.map{ it[0] }))
 
       trimUTRFromAlignment(alignConsensusToReference.out)
 
-      makeQCCSV(downsampleAmplicons.out.alignment.join(makeConsensus.out, by: 0)
+      makeQCCSV(downsampleAmplicons.out.alignment.join(callConsensusFreebayes.out.consensus, by: 0)
                                    .combine(ch_preparedRef.map{ it[0] }))
 
       downsampleAmplicons.out.summary.collectFile(keepHeader: true, sort: { it.text }, name: "${params.prefix}.downsampling.csv", storeDir: "${params.outdir}")
@@ -136,7 +144,7 @@ workflow sequenceAnalysis {
 
       writeQCSummaryCSV(qc.header.concat(qc.pass).concat(qc.fail).toList())
 
-      collateSamples(makeConsensus.out.join(downsampledBamToFastq.out.fastqPairs))
+      collateSamples(callConsensusFreebayes.out.consensus.join(downsampledBamToFastq.out.fastqPairs))
 
       if (params.outCram) {
         bamToCram(trimPrimerSequences.out.mapped.map{ it[0] } 

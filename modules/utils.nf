@@ -1,5 +1,5 @@
 process performHostFilter {
-    cpus 4
+    cpus 1
 
     tag { sampleId }
 
