@@ -124,7 +124,7 @@ workflow sequenceAnalysis {
       
       makeConsensus(downsampleAmplicons.out.alignment)
 
-      alignConsensusToReference(makeConsensus.out.combine(ch_preparedRef.map{ it[0] }))
+      alignConsensusToReference(callConsensusFreebayes.out.consensus.combine(ch_preparedRef.map{ it[0] }))
 
       trimUTRFromAlignment(alignConsensusToReference.out)
 
