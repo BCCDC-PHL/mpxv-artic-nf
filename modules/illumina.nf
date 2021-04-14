@@ -178,14 +178,14 @@ process callConsensusFreebayes {
 
     tag { sampleName }
 
-    publishDir "${params.outdir}/${task.process.replaceAll(":","_")}", pattern: "${sampleName}.consensus.fasta", mode: 'copy'
+    publishDir "${params.outdir}/${task.process.replaceAll(":","_")}", pattern: "${sampleName}.consensus.fa", mode: 'copy'
     publishDir "${params.outdir}/${task.process.replaceAll(":","_")}", pattern: "${sampleName}.variants.norm.vcf", mode: 'copy'
 
     input:
     tuple val(sampleName), path(bam), path(bam_index), path(ref)
 
     output:
-    tuple val(sampleName), path("${sampleName}.consensus.fasta"), emit: consensus
+    tuple val(sampleName), path("${sampleName}.consensus.fa"), emit: consensus
     tuple val(sampleName), path("${sampleName}.variants.norm.vcf"), emit: variants
 
     script:
@@ -222,10 +222,10 @@ process callConsensusFreebayes {
         done
 
         # apply ambiguous variants first using IUPAC codes. this variant set cannot contain indels or the subsequent step will break
-        bcftools consensus -f ${ref} -I ${sampleName}.ambiguous.norm.vcf.gz > ${sampleName}.ambiguous.fasta
+        bcftools consensus -f ${ref} -I ${sampleName}.ambiguous.norm.vcf.gz > ${sampleName}.ambiguous.fa
 
         # apply remaninng variants, including indels
-        bcftools consensus -f ${sampleName}.ambiguous.fasta -m ${sampleName}.mask.txt ${sampleName}.fixed.norm.vcf.gz | sed s/MN908947.3/${sampleName}/ > ${sampleName}.consensus.fasta
+        bcftools consensus -f ${sampleName}.ambiguous.fa -m ${sampleName}.mask.txt ${sampleName}.fixed.norm.vcf.gz | sed s/MN908947.3/${sampleName}/ > ${sampleName}.consensus.fa
         """
 }
 
@@ -259,13 +259,13 @@ process alignConsensusToReference {
 
     tag { sampleName }
 
-    publishDir "${params.outdir}/${task.process.replaceAll(":","_")}", pattern: "${sampleName}.primertrimmed.consensus.aln.fa", mode: 'copy'
+    publishDir "${params.outdir}/${task.process.replaceAll(":","_")}", pattern: "${sampleName}.consensus.aln.fa", mode: 'copy'
 
     input:
         tuple(sampleName, path(consensus), path(reference))
 
     output:
-        tuple(sampleName, path("${sampleName}.primertrimmed.consensus.aln.fa"))
+        tuple(sampleName, path("${sampleName}.consensus.aln.fa"))
 
     script:
         // Convert multi-line fasta to single line
@@ -279,7 +279,7 @@ process alignConsensusToReference {
           ${reference} \
           > ${sampleName}.with_ref.multi_line.alignment.fa
         awk '${awk_string}' ${sampleName}.with_ref.multi_line.alignment.fa > ${sampleName}.with_ref.single_line.alignment.fa
-        tail -n 2 ${sampleName}.with_ref.single_line.alignment.fa > ${sampleName}.primertrimmed.consensus.aln.fa
+        tail -n 2 ${sampleName}.with_ref.single_line.alignment.fa > ${sampleName}.consensus.aln.fa
         """
 }
 
@@ -290,21 +290,21 @@ process trimUTRFromAlignment {
 
     tag { sampleName }
 
-    publishDir "${params.outdir}/${task.process.replaceAll(":","_")}", pattern: "${sampleName}.primertrimmed.consensus.aln.utr_trimmed.fa", mode: 'copy'
+    publishDir "${params.outdir}/${task.process.replaceAll(":","_")}", pattern: "${sampleName}.consensus.aln.utr_trimmed.fa", mode: 'copy'
 
     input:
         tuple(sampleName, path(alignment))
 
     output:
-        tuple(sampleName, path("${sampleName}.primertrimmed.consensus.aln.utr_trimmed.fa"))
+        tuple(sampleName, path("${sampleName}.consensus.aln.utr_trimmed.fa"))
 
     script:
     awk_string = '/^>/ { printf("%s\\n", $0); next; } { printf("%s", $0); } END { printf("\\n"); }'
         """
         echo -e "\$(head -n 1 ${alignment} | cut -c 2-):266-29674" > non_utr.txt
         samtools faidx ${alignment}
-        samtools faidx -r non_utr.txt ${alignment} > ${sampleName}.primertrimmed.consensus.aln.utr_trimmed.multi_line.fa
-        awk '${awk_string}' ${sampleName}.primertrimmed.consensus.aln.utr_trimmed.multi_line.fa > ${sampleName}.primertrimmed.consensus.aln.utr_trimmed.fa
+        samtools faidx -r non_utr.txt ${alignment} > ${sampleName}.consensus.aln.utr_trimmed.multi_line.fa
+        awk '${awk_string}' ${sampleName}.consensus.aln.utr_trimmed.multi_line.fa > ${sampleName}.consensus.aln.utr_trimmed.fa
         """
 }
 
