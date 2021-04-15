@@ -15,7 +15,7 @@ NXF_VER=20.10.0 nextflow run ./main.nf \
        --gff $PWD/.github/data/refs/MN908947.3.gff \
        --composite_ref $PWD/.github/data/refs/mock_composite_ref.fa \
        --illumina \
-       --prefix test || true
+       --prefix test
 
 cp .nextflow.log artifacts/
 # save work dir and results for following tests
@@ -59,4 +59,4 @@ else
 fi
 
 # clean-up for following tests
-rm -rf previous_release && rm -rf results && rm -rf work && rm -rf .nextflow*
+# rm -rf previous_release && rm -rf results && rm -rf work && rm -rf .nextflow*
