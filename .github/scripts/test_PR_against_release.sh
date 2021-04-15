@@ -9,7 +9,11 @@ NXF_VER=20.10.0 nextflow run ./main.nf \
        -profile conda \
        --cache ~/.conda/envs \
        --directory $PWD/.github/data/fastqs/ \
-       --composite_ref $PWD/.github/data/mock_composite_ref.fa \
+       --ref $PWD/.github/data/refs/MN908947.3.fa \
+       --bed $PWD/.github/data/primer_schemes/nCoV-2019_Freed_1200bp.bed \
+       --primer_pairs_tsv $PWD/.github/data/primer_schemes/nCoV-2019_Freed_1200bp_primer_pairs.tsv \
+       --gff $PWD/.github/data/refs/MN908947.3.gff \
+       --composite_ref $PWD/.github/data/refs/mock_composite_ref.fa \
        --illumina \
        --prefix test
 cp .nextflow.log artifacts/
