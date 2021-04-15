@@ -9,12 +9,13 @@ NXF_VER=20.10.0 nextflow run ./main.nf \
        -profile conda \
        --cache ~/.conda/envs \
        --directory $PWD/.github/data/fastqs/ \
+       --composite_ref $PWD/.github/data/mock_composite_ref.fa \
        --illumina \
        --prefix test
 cp .nextflow.log artifacts/
 # save work dir and results for following tests
-cp -r results results_singularity_profile
-cp -r work work_singularity_profile
+cp -r results results_conda_profile
+cp -r work work_conda_profile
 
 # run tests against previous previous_release to compare outputs 
 git clone https://github.com/BCCDC-PHL/ncov2019-artic-nf.git previous_release 
@@ -28,6 +29,7 @@ NXF_VER=20.10.0 nextflow run ./main.nf \
        -profile conda \
        --cache ~/.conda/envs \
        --directory $PWD/../.github/data/fastqs/ \
+       --composite_ref $PWD/.github/data/mock_composite_ref.fa \
        --illumina \
        --prefix test
 cp .nextflow.log ../artifacts/previous_release.nextflow.log
