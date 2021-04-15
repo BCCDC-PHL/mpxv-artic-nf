@@ -29,10 +29,8 @@ jobs:
       with:
         path: ~/.conda/envs
         key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('environments') }}
-    - name: test PR outputs against previous release
-      run: bash .github/scripts/test_PR_against_release.sh
-    - name: test --bed and --ref input options 
-      run: bash .github/scripts/test_bed_ref_input.sh
+    - name: Test against previous release
+      run: bash .github/scripts/test_against_previous_release.sh
     - name: if failure, add latest NF log to artifacts
       run: mv .nextflow.log artifacts/failure.nextflow.log && mv work artifacts/work_failed
       if: failure()

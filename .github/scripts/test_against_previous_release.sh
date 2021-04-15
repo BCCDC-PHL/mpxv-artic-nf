@@ -9,11 +9,11 @@ NXF_VER=20.10.0 nextflow run ./main.nf \
        -profile conda \
        --cache ~/.conda/envs \
        --directory $PWD/.github/data/fastqs/ \
-       --ref $PWD/.github/data/refs/MN908947.3.fa \
+       --ref $PWD/.github/data/refs/MN908947.3/MN908947.3.fa \
        --bed $PWD/.github/data/primer_schemes/nCoV-2019_Freed_1200bp.bed \
        --primer_pairs_tsv $PWD/.github/data/primer_schemes/nCoV-2019_Freed_1200bp_primer_pairs.tsv \
        --gff $PWD/.github/data/refs/MN908947.3.gff \
-       --composite_ref $PWD/.github/data/refs/mock_composite_ref.fa \
+       --composite_ref $PWD/.github/data/refs/mock_composite_ref/mock_composite_ref.fa \
        --illumina \
        --prefix test
 
@@ -27,18 +27,25 @@ cp -r work artifacts/work_conda_profile
 git clone https://github.com/BCCDC-PHL/ncov2019-artic-nf.git previous_release 
 cd previous_release
 git checkout e9cb37a33ecc9c1a824024fc57c80794b3105f74
+
 # the github runner only has 2 cpus available, so replace for that commit required:
 sed -i s'/cpus = 4/cpus = 2/'g conf/resources.config
-ln -s ../*.sif ./
+
 echo Nextflow run previous release in --illumina mode.. >> ../artifacts/test_artifact.log
 NXF_VER=20.10.0 nextflow run ./main.nf \
        -profile conda \
        --cache ~/.conda/envs \
        --directory $PWD/../.github/data/fastqs/ \
-       --composite_ref $PWD/.github/data/mock_composite_ref.fa \
+       --ref $PWD/../.github/data/refs/MN908947.3/MN908947.3.fa \
+       --bed $PWD/../.github/data/primer_schemes/nCoV-2019_Freed_1200bp.bed \
+       --primer_pairs_tsv $PWD/../.github/data/primer_schemes/nCoV-2019_Freed_1200bp_primer_pairs.tsv \
+       --gff $PWD/../.github/data/refs/MN908947.3.gff \
+       --composite_ref $PWD/../.github/data/refs/mock_composite_ref/mock_composite_ref.fa \
        --illumina \
        --prefix test
+
 cp .nextflow.log ../artifacts/previous_release.nextflow.log
+
 cd ..
 
 # exclude files from comparison
