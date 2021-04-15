@@ -11,9 +11,9 @@ jobs:
     - uses: actions/checkout@master
     - name: create artifacts dir to save test logs
       run: mkdir artifacts
-    - name: install Conda
+    - name: Install Miniconda
       run: bash .github/scripts/install_conda.sh
-    - name: install Nextflow via Conda
+    - name: Install Nextflow
       run: bash .github/scripts/install_nextflow.sh
     - uses: actions/cache@v2
       name: Cache conda environment

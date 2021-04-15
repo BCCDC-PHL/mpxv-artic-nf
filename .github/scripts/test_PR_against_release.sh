@@ -1,6 +1,7 @@
 #!/bin/bash
 set -eo pipefail
-# export PATH=/opt/miniconda3/bin:$PATH
+export PATH=/opt/miniconda3/bin:$PATH
+export PATH=/opt/nextflow/bin:$PATH
 
 # write test log as github Action artifact
 echo Nextflow run current PR in --illumina mode.. >> artifacts/test_artifact.log
