@@ -20,6 +20,7 @@ cp .nextflow.log artifacts/
 # save work dir and results for following tests
 cp -r results results_conda_profile
 cp -r work work_conda_profile
+cp -r work artifacts/work_conda_profile
 
 # run tests against previous previous_release to compare outputs 
 git clone https://github.com/BCCDC-PHL/ncov2019-artic-nf.git previous_release 
