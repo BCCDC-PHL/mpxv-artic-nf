@@ -15,8 +15,15 @@ jobs:
       run: bash .github/scripts/install_conda.sh
     - name: Install Nextflow
       run: bash .github/scripts/install_nextflow.sh
-    - uses: actions/cache@v2
-      name: Cache conda environment
+    - name: Cache Miniconda installation
+      uses: actions/cache@v2
+      env:
+        cache-name: cache-conda-env
+      with:
+        path: /opt/miniconda3
+        key: ${{ runner.os }}-build-${{ env.cache-name }}-miniconda3
+    - name: Cache conda environment
+      uses: actions/cache@v2
       env:
         cache-name: cache-conda-env
       with:
@@ -27,7 +34,7 @@ jobs:
     - name: test --bed and --ref input options 
       run: bash .github/scripts/test_bed_ref_input.sh
     - name: if failure, add latest NF log to artifacts
-      run: mv .nextflow.log artifacts/failure.nextflow.log
+      run: mv .nextflow.log artifacts/failure.nextflow.log && mv work artifacts/work_failed
       if: failure()
     - uses: actions/upload-artifact@v1
       if: always()
