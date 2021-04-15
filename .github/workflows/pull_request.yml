@@ -15,18 +15,17 @@ jobs:
       run: bash .github/scripts/install_conda.sh
     - name: install Nextflow via Conda
       run: bash .github/scripts/install_nextflow.sh
+    - uses: actions/cache@v2
+      name: Cache conda environment
+      env:
+        cache-name: cache-conda-env
+      with:
+        path: ~/.conda/envs
+        key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('environments') }}
     - name: test PR outputs against previous release
       run: bash .github/scripts/test_PR_against_release.sh
-    - name: test -profile sanger
-      run: bash .github/scripts/test_sanger_profile.sh
-    - name: test --cache conda environment 
-      run: bash .github/scripts/test_conda_cache.sh
     - name: test --bed and --ref input options 
       run: bash .github/scripts/test_bed_ref_input.sh
-    - name: test --cram input together with --bed and --ref
-      run: bash .github/scripts/test_cram_input.sh
-    - name: test --outCram output together with --cram and --ref
-      run: bash .github/scripts/test_cram_output.sh
     - name: if failure, add latest NF log to artifacts
       run: mv .nextflow.log artifacts/failure.nextflow.log
       if: failure()
