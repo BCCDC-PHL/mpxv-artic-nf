@@ -1,13 +1,12 @@
 #!/bin/bash
 set -eo pipefail
-export PATH=/opt/conda/bin:$PATH
+# export PATH=/opt/miniconda3/bin:$PATH
 
-# run current pull request code
-singularity --version
 # write test log as github Action artifact
 echo Nextflow run current PR in --illumina mode.. >> artifacts/test_artifact.log
-NXF_VER=20.03.0-edge nextflow run ./main.nf \
-       -profile singularity \
+NXF_VER=20.10.0 nextflow run ./main.nf \
+       -profile conda \
+       --cache ~/.conda/envs \
        --directory $PWD/.github/data/fastqs/ \
        --illumina \
        --prefix test
@@ -17,15 +16,16 @@ cp -r results results_singularity_profile
 cp -r work work_singularity_profile
 
 # run tests against previous previous_release to compare outputs 
-git clone https://github.com/connor-lab/ncov2019-artic-nf.git previous_release 
+git clone https://github.com/BCCDC-PHL/ncov2019-artic-nf.git previous_release 
 cd previous_release
-git checkout 5e00ba938d9e9f903a8da381a87eaff874e09802 
+git checkout e9cb37a33ecc9c1a824024fc57c80794b3105f74
 # the github runner only has 2 cpus available, so replace for that commit required:
 sed -i s'/cpus = 4/cpus = 2/'g conf/resources.config
 ln -s ../*.sif ./
 echo Nextflow run previous release in --illumina mode.. >> ../artifacts/test_artifact.log
-NXF_VER=20.03.0-edge nextflow run ./main.nf \
-       -profile singularity \
+NXF_VER=20.10.0 nextflow run ./main.nf \
+       -profile conda \
+       --cache ~/.conda/envs \
        --directory $PWD/../.github/data/fastqs/ \
        --illumina \
        --prefix test
