@@ -2,8 +2,7 @@ on:
   pull_request:
     branches:
     - master
-    - development
-name: master Pull Request
+name: Pull Request
 jobs:
   test:
     name: Run tests
@@ -12,34 +11,32 @@ jobs:
     - uses: actions/checkout@master
     - name: create artifacts dir to save test logs
       run: mkdir artifacts
-    - name: install Singularity
-      run: |
-       bash .github/scripts/install_singularity.sh
-    - name: Build pipeline Singularity containers
-      run: |
-       echo $(which singularity)
-       bash scripts/build_singularity_containers.sh
-    - name: install Conda
+    - name: Cache Miniconda installation
+      id: cache-miniconda
+      uses: actions/cache@v2
+      env:
+        cache-name: cache-miniconda-installation
+      with:
+        path: /opt/miniconda3
+        key: ${{ runner.os }}-build-${{ env.cache-name }}-miniconda3
+    - name: Cache conda environment
+      id: cache-conda-env
+      uses: actions/cache@v2
+      env:
+        cache-name: cache-conda-env
+      with:
+        path: ~/.conda/envs
+        key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('environments') }}
+    - name: Install Miniconda
+      if: steps.cache-miniconda.outputs.cache-hit != 'true'
       run: bash .github/scripts/install_conda.sh
-    - name: install Nextflow via Conda
-      run: |
-       export PATH=/opt/conda/bin:$PATH
-       conda install -c bioconda nextflow
-       NXF_VER=20.03.0-edge nextflow -version
-    - name: test PR outputs against previous release
-      run: bash .github/scripts/test_PR_against_release.sh
-    - name: test -profile sanger
-      run: bash .github/scripts/test_sanger_profile.sh
-    - name: test --cache conda environment 
-      run: bash .github/scripts/test_conda_cache.sh
-    - name: test --bed and --ref input options 
-      run: bash .github/scripts/test_bed_ref_input.sh
-    - name: test --cram input together with --bed and --ref
-      run: bash .github/scripts/test_cram_input.sh
-    - name: test --outCram output together with --cram and --ref
-      run: bash .github/scripts/test_cram_output.sh
+    - name: Install Nextflow
+      run: bash .github/scripts/install_nextflow.sh
+
+    - name: Test against previous release
+      run: bash .github/scripts/test_against_previous_release.sh
     - name: if failure, add latest NF log to artifacts
-      run: mv .nextflow.log artifacts/failure.nextflow.log
+      run: mv .nextflow.log artifacts/failure.nextflow.log && mv work artifacts/work_failed
       if: failure()
     - uses: actions/upload-artifact@v1
       if: always()
