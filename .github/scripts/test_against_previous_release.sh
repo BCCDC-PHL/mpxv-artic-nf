@@ -21,7 +21,6 @@ cp .nextflow.log artifacts/
 # save work dir and results for following tests
 cp -r results results_conda_profile
 cp -r work work_conda_profile
-cp -r work artifacts/work_conda_profile
 
 # run tests against previous previous_release to compare outputs 
 git clone https://github.com/BCCDC-PHL/ncov2019-artic-nf.git previous_release 
@@ -52,10 +51,11 @@ cd ..
 # and list differences
 echo Compare ouputs of current PR vs those of previous release.. >> artifacts/test_artifact.log
 find results ./previous_release/results \
-     -name "test.qc.csv" \
-     -o -name "*.fq.gz" \
+     -name "*.fq.gz" \
      -o -name "*.bam" \
-     -o -name "scheme" | xargs rm -rf
+     -o -name "*.bam.bai" \
+     -o -name "*.vcf" \
+    | xargs rm -rf
 if ! git diff --stat --no-index results ./previous_release/results > diffs.txt ; then
   echo "test failed: differences found between PR and previous release" >> artifacts/test_artifact.log
   echo see diffs.txt >> artifacts/test_artifact.log 
