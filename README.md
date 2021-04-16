@@ -1,6 +1,8 @@
 # ncov2019-artic-nf
 A Nextflow pipeline for running the ARTIC network's fieldbioinformatics tools (https://github.com/artic-network/fieldbioinformatics), with a focus on ncov2019
 
+![push master](https://github.com/BCCDC-PHL/ncov2019-artic-nf/actions/workflows/push_master.yml/badge.svg)
+
 #### Introduction
 
 ------------
