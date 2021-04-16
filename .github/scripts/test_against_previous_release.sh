@@ -7,8 +7,7 @@ export PATH=/opt/nextflow/bin:$PATH
 
 # write test log as github Action artifact
 echo Nextflow run current PR in --illumina mode.. >> artifacts/test_artifact.log
-NXF_VER=20.10.0 nextflow run ./main.nf \
-       -quiet \
+NXF_VER=20.10.0 nextflow -quiet run ./main.nf \
        -profile conda \
        --cache ~/.conda/envs \
        --directory $PWD/.github/data/fastqs/ \
@@ -31,8 +30,7 @@ git checkout e9cb37a33ecc9c1a824024fc57c80794b3105f74
 sed -i s'/cpus = 4/cpus = 2/'g conf/resources.config
 
 echo Nextflow run previous release in --illumina mode.. >> ../artifacts/test_artifact.log
-NXF_VER=20.10.0 nextflow run ./main.nf \
-       -quiet \
+NXF_VER=20.10.0 nextflow -quiet run ./main.nf \
        -profile conda \
        --cache ~/.conda/envs \
        --directory $PWD/../.github/data/fastqs/ \

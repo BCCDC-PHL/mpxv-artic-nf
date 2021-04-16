@@ -15,7 +15,7 @@ jobs:
       id: cache-miniconda
       uses: actions/cache@v2
       env:
-        cache-name: cache-conda-env
+        cache-name: cache-miniconda-installation
       with:
         path: /opt/miniconda3
         key: ${{ runner.os }}-build-${{ env.cache-name }}-miniconda3
