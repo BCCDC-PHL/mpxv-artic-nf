@@ -1,0 +1,28 @@
+on:
+  push:
+    branches:
+    - master
+name: Tests
+jobs:
+  test:
+    name: Run tests
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+    - name: create artifacts dir to save test logs
+      run: mkdir artifacts
+    - name: Install Miniconda
+      if: steps.cache-miniconda.outputs.cache-hit != 'true'
+      run: bash .github/scripts/install_conda.sh
+    - name: Install Nextflow
+      run: bash .github/scripts/install_nextflow.sh
+    - name: Test against previous release
+      run: bash .github/scripts/test_against_previous_release.sh
+    - name: if failure, add latest NF log to artifacts
+      run: mv .nextflow.log artifacts/failure.nextflow.log && mv work artifacts/work_failed
+      if: failure()
+    - uses: actions/upload-artifact@v1
+      if: always()
+      with:
+        name: test_artifacts
+        path: artifacts
