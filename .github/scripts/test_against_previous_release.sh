@@ -10,7 +10,6 @@ echo Nextflow run current PR in --illumina mode.. >> artifacts/test_artifact.log
 NXF_VER=20.10.0 nextflow run ./main.nf \
        -profile conda \
        --cache ~/.conda/envs \
-       --with-report pull_request_execution_report.html \
        --directory $PWD/.github/data/fastqs/ \
        --ref $PWD/.github/data/refs/MN908947.3/MN908947.3.fa \
        --bed $PWD/.github/data/primer_schemes/nCoV-2019_Freed_1200bp.bed \
@@ -21,7 +20,6 @@ NXF_VER=20.10.0 nextflow run ./main.nf \
        --prefix test
 
 cp .nextflow.log artifacts/
-cp pull_request_execution_report.html artifacts
 
 # run tests against previous previous_release to compare outputs 
 git clone https://github.com/BCCDC-PHL/ncov2019-artic-nf.git previous_release 
@@ -35,7 +33,6 @@ echo Nextflow run previous release in --illumina mode.. >> ../artifacts/test_art
 NXF_VER=20.10.0 nextflow run ./main.nf \
        -profile conda \
        --cache ~/.conda/envs \
-       --with-report previous_release_execution_report.html \
        --directory $PWD/../.github/data/fastqs/ \
        --ref $PWD/../.github/data/refs/MN908947.3/MN908947.3.fa \
        --bed $PWD/../.github/data/primer_schemes/nCoV-2019_Freed_1200bp.bed \
@@ -46,7 +43,6 @@ NXF_VER=20.10.0 nextflow run ./main.nf \
        --prefix test
 
 cp .nextflow.log ../artifacts/previous_release.nextflow.log
-cp previous_release_execution_report.html ../artifacts
 
 cd ..
 
