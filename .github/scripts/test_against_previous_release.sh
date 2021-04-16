@@ -1,5 +1,7 @@
 #!/bin/bash
+
 set -eo pipefail
+
 export PATH=/opt/miniconda3/bin:$PATH
 export PATH=/opt/nextflow/bin:$PATH
 
@@ -18,9 +20,6 @@ NXF_VER=20.10.0 nextflow run ./main.nf \
        --prefix test
 
 cp .nextflow.log artifacts/
-# save work dir and results for following tests
-cp -r results results_conda_profile
-cp -r work work_conda_profile
 
 # run tests against previous previous_release to compare outputs 
 git clone https://github.com/BCCDC-PHL/ncov2019-artic-nf.git previous_release 
@@ -49,7 +48,7 @@ cd ..
 
 # exclude files from comparison
 # and list differences
-echo Compare ouputs of current PR vs those of previous release.. >> artifacts/test_artifact.log
+echo "Compare ouputs of current PR vs those of previous release.." >> artifacts/test_artifact.log
 find results ./previous_release/results \
      -name "*.fq.gz" \
      -o -name "*.bam" \
@@ -58,12 +57,12 @@ find results ./previous_release/results \
     | xargs rm -rf
 if ! git diff --stat --no-index results ./previous_release/results > diffs.txt ; then
   echo "test failed: differences found between PR and previous release" >> artifacts/test_artifact.log
-  echo see diffs.txt >> artifacts/test_artifact.log 
+  echo "see diffs.txt" >> artifacts/test_artifact.log 
   cp diffs.txt artifacts/  
   exit 1
 else
-  echo no differences found between PR and previous release >> artifacts/test_artifact.log
+  echo "no differences found between PR and previous release" >> artifacts/test_artifact.log
 fi
 
 # clean-up for following tests
-# rm -rf previous_release && rm -rf results && rm -rf work && rm -rf .nextflow*
+rm -rf previous_release && rm -rf results && rm -rf work && rm -rf .nextflow*
