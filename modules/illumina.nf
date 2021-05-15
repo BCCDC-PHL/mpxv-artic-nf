@@ -20,7 +20,8 @@ process readTrimming {
     script:
     """
     if [[ \$(gunzip -c ${forward} | head -n4 | wc -l) -eq 0 ]]; then
-      exit 0
+      cp ${forward} ${sampleName}_hostfiltered_val_1.fq.gz
+      cp ${reverse} ${sampleName}_hostfiltered_val_2.fq.gz
     else
       trim_galore --paired $forward $reverse
     fi
@@ -44,15 +45,11 @@ process filterResidualAdapters {
     tuple(sampleName, path(forward), path(reverse))
 
     output:
-    tuple(sampleName, path("*1_posttrim_filter.fq.gz"), path("*2_posttrim_filter.fq.gz")) optional true
+    tuple(sampleName, path("*1_posttrim_filter.fq.gz"), path("*2_posttrim_filter.fq.gz"))
 
     script:
     """
-    if [[ \$(gunzip -c ${forward} | head -n4 | wc -l) -eq 0 ]]; then
-      exit 0
-    else
-      filter_residual_adapters.py --input_R1 $forward --input_R2 $reverse 
-    fi
+    filter_residual_adapters.py --input_R1 $forward --input_R2 $reverse
     """
 }
 
