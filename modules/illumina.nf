@@ -168,6 +168,12 @@ process makeConsensus {
         samtools mpileup -aa -A -B -d ${params.mpileupDepth} -Q0 ${bam} | \
         ivar consensus -t ${params.varFreqThreshold} -m ${params.varMinDepth} \
         -n N -p ${sampleName}.primertrimmed.consensus
+        # If the consensus sequence is empty, fill it with 29903 'N' characters.
+        if [[ \$(tail -n 1 ${sampleName}.primertrimmed.consensus.fa | tr -d '\n' | wc -c) == 0 ]]
+        then
+          mv ${sampleName}.primertrimmed.consensus.fa ${sampleName}.primertrimmed.consensus.no_seq.fa
+          cat <(head -n 1 ${sampleName}.primertrimmed.consensus.no_seq.fa) <(head -c 29903 < /dev/zero | tr '\\0' 'N') <(echo) > ${sampleName}.primertrimmed.consensus.fa
+        fi
         """
 }
 
