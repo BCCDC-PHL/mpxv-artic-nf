@@ -19,7 +19,8 @@ NXF_VER=20.10.0 nextflow -quiet run ./main.nf \
        --illumina \
        --prefix test
 
-cp .nextflow.log artifacts/
+cp .nextflow.log artifacts/pull_request.nextflow.log
+cp -r results artifacts/pull_request_results
 
 # run tests against previous previous_release to compare outputs 
 git clone https://github.com/BCCDC-PHL/ncov2019-artic-nf.git previous_release 
@@ -43,6 +44,7 @@ NXF_VER=20.10.0 nextflow -quiet run ./main.nf \
        --prefix test
 
 cp .nextflow.log ../artifacts/previous_release.nextflow.log
+cp -r results ../artifacts/previous_release_results
 
 cd ..
 

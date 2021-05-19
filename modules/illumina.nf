@@ -20,7 +20,8 @@ process readTrimming {
     script:
     """
     if [[ \$(gunzip -c ${forward} | head -n4 | wc -l) -eq 0 ]]; then
-      exit 0
+      cp ${forward} ${sampleName}_hostfiltered_val_1.fq.gz
+      cp ${reverse} ${sampleName}_hostfiltered_val_2.fq.gz
     else
       trim_galore --paired $forward $reverse
     fi
@@ -44,15 +45,11 @@ process filterResidualAdapters {
     tuple(sampleName, path(forward), path(reverse))
 
     output:
-    tuple(sampleName, path("*1_posttrim_filter.fq.gz"), path("*2_posttrim_filter.fq.gz")) optional true
+    tuple(sampleName, path("*1_posttrim_filter.fq.gz"), path("*2_posttrim_filter.fq.gz"))
 
     script:
     """
-    if [[ \$(gunzip -c ${forward} | head -n4 | wc -l) -eq 0 ]]; then
-      exit 0
-    else
-      filter_residual_adapters.py --input_R1 $forward --input_R2 $reverse 
-    fi
+    filter_residual_adapters.py --input_R1 $forward --input_R2 $reverse
     """
 }
 
@@ -171,6 +168,12 @@ process makeConsensus {
         samtools mpileup -aa -A -B -d ${params.mpileupDepth} -Q0 ${bam} | \
         ivar consensus -t ${params.varFreqThreshold} -m ${params.varMinDepth} \
         -n N -p ${sampleName}.primertrimmed.consensus
+        # If the consensus sequence is empty, fill it with 29903 'N' characters.
+        if [[ \$(tail -n 1 ${sampleName}.primertrimmed.consensus.fa | tr -d '\n' | wc -c) == 0 ]]
+        then
+          mv ${sampleName}.primertrimmed.consensus.fa ${sampleName}.primertrimmed.consensus.no_seq.fa
+          cat <(head -n 1 ${sampleName}.primertrimmed.consensus.no_seq.fa) <(head -c 29903 < /dev/zero | tr '\\0' 'N') <(echo) > ${sampleName}.primertrimmed.consensus.fa
+        fi
         """
 }
 

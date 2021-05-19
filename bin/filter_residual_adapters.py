@@ -52,6 +52,12 @@ def filter_reads(filter_sequences, min_match_length, input_R1_fp, input_R2_fp, o
             output_R1.write(fq1.encode('utf-8'))
             output_R2.write(fq2.encode('utf-8'))
 
+        if reads_kept == 0:
+            fq1 = ""
+            fq2 = ""
+            output_R1.write(fq1.encode('utf-8'))
+            output_R2.write(fq2.encode('utf-8'))
+
     print(f"reads kept: {reads_kept}, reads filtered: {reads_filtered}")
 
 if __name__ == '__main__':
