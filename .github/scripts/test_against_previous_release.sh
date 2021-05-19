@@ -25,7 +25,7 @@ cp -r results artifacts/pull_request_results
 # run tests against previous previous_release to compare outputs 
 git clone https://github.com/BCCDC-PHL/ncov2019-artic-nf.git previous_release 
 cd previous_release
-git checkout e9cb37a33ecc9c1a824024fc57c80794b3105f74
+git checkout 5494eb4c9c173b27204adcc42b5e02828839a44f
 
 # the github runner only has 2 cpus available, so replace for that commit required:
 sed -i s'/cpus = 4/cpus = 2/'g conf/resources.config
