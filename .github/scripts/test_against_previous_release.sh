@@ -19,7 +19,7 @@ NXF_VER=20.10.0 nextflow -quiet run ./main.nf \
        --illumina \
        --prefix test
 
-cp .nextflow.log artifacts/
+cp .nextflow.log artifacts/pull_request.nextflow.log
 
 # run tests against previous previous_release to compare outputs 
 git clone https://github.com/BCCDC-PHL/ncov2019-artic-nf.git previous_release 
