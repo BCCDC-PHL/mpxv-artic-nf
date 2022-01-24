@@ -55,8 +55,8 @@ process downsampledBamToFastq {
 
     script:
         """
-        samtools collate -u -O ${downsampled_bam} | \
-        samtools fastq -n -0 /dev/null -1 ${sampleId}_hostfiltered_downsampled_R1.fastq.gz -2 ${sampleId}_hostfiltered_downsampled_R2.fastq.gz -s ${sampleId}_hostfiltered_downsampled_S.fastq.gz
+        samtools collate -u ${downsampled_bam} -o ${sampleId}.collate.bam ${sampleId}
+        samtools fastq -n -0 /dev/null -1 ${sampleId}_hostfiltered_downsampled_R1.fastq.gz -2 ${sampleId}_hostfiltered_downsampled_R2.fastq.gz -s ${sampleId}_hostfiltered_downsampled_S.fastq.gz ${sampleId}.collate.bam
         """
 }
 
