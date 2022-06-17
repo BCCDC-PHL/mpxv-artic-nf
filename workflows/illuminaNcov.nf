@@ -108,7 +108,7 @@ workflow sequenceAnalysis {
 
       trimPrimerSequences(readMapping.out.combine(ch_bedFile))
 
-      downsampleAmplicons(trimPrimerSequences.out.ptrim.combine(ch_bedFile))
+      downsampleAmplicons(trimPrimerSequences.out.ptrim.combine(ch_bedFile).combine(Channel.fromPath(params.ref)))
 
       downsampledBamToFastq(downsampleAmplicons.out.alignment)
 

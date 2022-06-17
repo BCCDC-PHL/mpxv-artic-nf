@@ -229,7 +229,7 @@ def main(args):
 
     required_depth_achieved = [False] * len(genome_checkpoints)
     
-    depths = [0] * 30000
+    depths = [0] * (args.genome_size + 100)
 
     infile = pysam.AlignmentFile(args.bam, "rb")
     bam_header = infile.header.copy().to_dict()
@@ -303,6 +303,7 @@ if __name__ == "__main__":
     parser.add_argument('--min-depth', type=int, default=200, help='Subsample to n coverage')
     parser.add_argument('--mapping-quality', type=int, default=20, help='Minimum mapping quality to include read in output')
     parser.add_argument('--amplicon-subdivisions', type=int, default=3, help='How many times to divide amplicons to detect coverage')
+    parser.add_argument('--genome-size', type=int, default=29903, help='')
     parser.add_argument('--verbose', action='store_true', help='Debug mode')
     args = parser.parse_args()
     main(args)
