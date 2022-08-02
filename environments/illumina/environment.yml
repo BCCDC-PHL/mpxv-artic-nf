@@ -1,4 +1,4 @@
-name: artic-ncov2019-illumina
+name: artic-mpxv-illumina
 channels:
   - conda-forge
   - bioconda

@@ -5,13 +5,13 @@ environments/illumina/environment.yml /environment.yml
 environments/extras.yml /extras.yml
 %labels
 authors="Matt Bull" 
-description="Docker image containing all requirements for the ARTIC project's ncov2019 pipeline"
+description="Docker image containing all requirements for the ARTIC project's mpxv pipeline"
 %post
 
 apt-get update && apt-get install -y g++ git make procps rsync && apt-get clean -y
 /opt/conda/bin/conda env create -f /environment.yml
-/opt/conda/bin/conda env update -f /extras.yml -n artic-ncov2019-illumina
-PATH=/opt/conda/envs/artic-ncov2019-illumina/bin:$PATH
+/opt/conda/bin/conda env update -f /extras.yml -n artic-mpxv-illumina
+PATH=/opt/conda/envs/artic-mpxv-illumina/bin:$PATH
 
 %environment
-export PATH=/opt/conda/envs/artic-ncov2019-illumina/bin:$PATH
+export PATH=/opt/conda/envs/artic-mpxv-illumina/bin:$PATH
