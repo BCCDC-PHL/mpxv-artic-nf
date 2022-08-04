@@ -1,31 +1,21 @@
 #!/usr/bin/env nextflow
 
-// enable dsl2
-nextflow.preview.dsl = 2
+nextflow.enable.dsl = 2
 
-// import modules
-include {articDownloadScheme } from '../modules/artic.nf' 
-include {readTrimming} from '../modules/illumina.nf' 
-include {filterResidualAdapters} from '../modules/illumina.nf' 
+include {articDownloadScheme } from '../modules/utils.nf'
+include {performHostFilter} from '../modules/illumina.nf'
+include {normalizeDepth} from '../modules/illumina.nf'
+include {readTrimming} from '../modules/illumina.nf'
+include {filterResidualAdapters} from '../modules/illumina.nf'
 include {indexReference} from '../modules/illumina.nf'
-include {readMapping} from '../modules/illumina.nf' 
+include {readMapping} from '../modules/illumina.nf'
 include {trimPrimerSequences} from '../modules/illumina.nf'
 include {callConsensusFreebayes} from '../modules/illumina.nf'
 include {annotateVariantsVCF} from '../modules/illumina.nf'
-include {callVariants} from '../modules/illumina.nf'
-include {makeConsensus} from '../modules/illumina.nf' 
-include {cramToFastq} from '../modules/illumina.nf'
 include {alignConsensusToReference} from '../modules/illumina.nf'
-include {trimUTRFromAlignment} from '../modules/illumina.nf'
-include {performHostFilter} from '../modules/utils.nf'
-include {downsampleAmplicons} from '../modules/utils.nf'
-include {downsampledBamToFastq} from '../modules/utils.nf'
-include {addCodonPositionToVariants} from '../modules/utils.nf'
 
 include {makeQCCSV} from '../modules/qc.nf'
 include {writeQCSummaryCSV} from '../modules/qc.nf'
-
-include {bamToCram} from '../modules/out.nf'
 
 include {collateSamples} from '../modules/upload.nf'
 
@@ -70,21 +60,20 @@ workflow prepareReferenceFiles {
     /* If bedfile is supplied, use that,
        if not, get it from ARTIC github repo */ 
  
-    if (params.bed ) {
-      Channel.fromPath(params.bed)
-             .set{ ch_bedFile }
-
+    if (params.bed) {
+      ch_bedFile = Channel.fromPath(params.bed)
     } else {
-      articDownloadScheme.out.bed
-                         .set{ ch_bedFile }
+      ch_bedFile = articDownloadScheme.out.bed
     }
 
-    Channel.fromPath(params.gff)
-           .set{ ch_gff }
+    ch_gff = Channel.fromPath(params.gff)
+
+    ch_primerPairs = Channel.fromPath(params.primer_pairs_tsv)
 
     emit:
       bwaindex = ch_preparedRef
       bedfile = ch_bedFile
+      primer_pairs = ch_primerPairs
       gff = ch_gff
 }
 
@@ -94,13 +83,16 @@ workflow sequenceAnalysis {
       ch_filePairs
       ch_preparedRef
       ch_bedFile
+      ch_primerPairs
       ch_gff
 
     main:
 
       performHostFilter(ch_filePairs)
 
-      readTrimming(performHostFilter.out)
+      normalizeDepth(performHostFilter.out)
+
+      readTrimming(normalizeDepth.out)
 
       filterResidualAdapters(readTrimming.out)
 
@@ -108,30 +100,18 @@ workflow sequenceAnalysis {
 
       trimPrimerSequences(readMapping.out.combine(ch_bedFile))
 
-      downsampleAmplicons(trimPrimerSequences.out.ptrim.combine(ch_bedFile).combine(Channel.fromPath(params.ref)))
-
-      downsampledBamToFastq(downsampleAmplicons.out.alignment)
-
-      callVariants(downsampleAmplicons.out.alignment.combine(ch_preparedRef.map{ it[0] }).combine(ch_gff))
-
-      addCodonPositionToVariants(callVariants.out.combine(ch_gff))
-
-      callConsensusFreebayes(downsampleAmplicons.out.alignment.combine(ch_preparedRef.map{ it[0] }))
+      callConsensusFreebayes(trimPrimerSequences.out.ptrim.combine(ch_preparedRef.map{ it[0] }))
 
       if (params.gff != 'NO_FILE') {
         annotateVariantsVCF(callConsensusFreebayes.out.variants.combine(ch_preparedRef.map{ it[0] }).combine(ch_gff))
       }
-      
-      makeConsensus(downsampleAmplicons.out.alignment)
 
       alignConsensusToReference(callConsensusFreebayes.out.consensus.combine(ch_preparedRef.map{ it[0] }))
 
-      trimUTRFromAlignment(alignConsensusToReference.out)
-
-      makeQCCSV(downsampleAmplicons.out.alignment.join(callConsensusFreebayes.out.consensus, by: 0)
-                                   .combine(ch_preparedRef.map{ it[0] }))
-
-      downsampleAmplicons.out.summary.collectFile(keepHeader: true, sort: { it.text }, name: "${params.prefix}.downsampling.csv", storeDir: "${params.outdir}")
+      makeQCCSV(trimPrimerSequences.out.ptrim.join(callConsensusFreebayes.out.consensus, by: 0)
+                                   .combine(ch_preparedRef.map{ it[0] })
+				   .combine(ch_bedFile)
+				   .combine(ch_primerPairs))
 
       makeQCCSV.out.csv.splitCsv()
                        .unique()
@@ -144,38 +124,19 @@ workflow sequenceAnalysis {
 
       writeQCSummaryCSV(qc.header.concat(qc.pass).concat(qc.fail).toList())
 
-      collateSamples(callConsensusFreebayes.out.consensus.join(downsampledBamToFastq.out.fastqPairs))
-
-      if (params.outCram) {
-        bamToCram(trimPrimerSequences.out.mapped.map{ it[0] } 
-                        .join (trimPrimerSequences.out.ptrim.combine(ch_preparedRef.map{ it[0] })) )
-
-      }
+      collateSamples(callConsensusFreebayes.out.consensus.join(trimPrimerSequences.out.mapped))
 
     emit:
       qc_pass = collateSamples.out
 }
 
-workflow ncovIllumina {
+workflow mpxvIllumina {
     take:
       ch_filePairs
 
     main:
-      // Build or download fasta, index and bedfile as required
       prepareReferenceFiles()
-
-      // Actually do analysis
-      sequenceAnalysis(ch_filePairs, prepareReferenceFiles.out.bwaindex, prepareReferenceFiles.out.bedfile, prepareReferenceFiles.out.gff)
+      sequenceAnalysis(ch_filePairs, prepareReferenceFiles.out.bwaindex, prepareReferenceFiles.out.bedfile, prepareReferenceFiles.out.primer_pairs, prepareReferenceFiles.out.gff)
 }
 
-workflow ncovIlluminaCram {
-    take:
-      ch_cramFiles
-    main:
-      // Convert CRAM to fastq
-      cramToFastq(ch_cramFiles)
-
-      // Run standard pipeline
-      ncovIllumina(cramToFastq.out)
-}
 
