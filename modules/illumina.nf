@@ -164,7 +164,7 @@ process trimPrimerSequences {
     """
     samtools view -F4 -o ${sampleName}.mapped.bam ${bam}
     samtools index ${sampleName}.mapped.bam
-    ivar trim -e -i ${sampleName}.mapped.bam -b ${bedfile} -m ${params.illuminaKeepLen} -q ${params.illuminaQualThreshold} -f ${params.primer_pairs_tsv} -p ivar.out
+    ivar trim -e -i ${sampleName}.mapped.bam -b ${bedfile} -m ${params.keepLen} -q ${params.qualThreshold} -f ${params.primer_pairs_tsv} -p ivar.out
     samtools sort -o ${sampleName}.mapped.primertrimmed.sorted.bam ivar.out.bam
     samtools index ${sampleName}.mapped.primertrimmed.sorted.bam
     """

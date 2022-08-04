@@ -65,8 +65,8 @@ Important config options are:
 |:---------------------------------|---------:|--------------------------------------------------------------------------------------------------------------------:|
 | `normalizationTargetDepth`       | `200`    | Target depth of coverage to normalize to prior to alignment                                                         |
 | `normalizationMinDepth`          | `5`      | Minimum depth of coverage to normalize to prior to alignment                                                        |
-| `illuminaKeepLen`                | `50`     | Length of illumina reads to keep after primer trimming                                                              |
-| `illuminaQualThreshold`          | `20`     | Sliding window quality threshold for keeping reads after primer trimming (illumina)                                 |
+| `keepLen`                        | `50`     | Length of reads to keep after primer trimming                                                                       |
+| `qualThreshold`                  | `20`     | Sliding window quality threshold for keeping reads after primer trimming                                            |
 | `varMinFreqThreshold`            | `0.25`   | Allele frequency threshold for ambiguous variant                                                                    |
 | `varFreqThreshold`               | `0.75`   | Allele frequency threshold for unambiguous variant                                                                  |
 | `varMinDepth`                    | `10`     | Minimum coverage depth to call variant                                                                              |
