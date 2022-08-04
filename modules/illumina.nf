@@ -2,6 +2,8 @@ process performHostFilter {
 
     tag { sampleName }
 
+    label 'largecpu'
+
     publishDir "${params.outdir}/${task.process.replaceAll(":","_")}", pattern: "${sampleName}_hostfiltered_R*.fastq.gz", mode: 'copy'
 
     input:
