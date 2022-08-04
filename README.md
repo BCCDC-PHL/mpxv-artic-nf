@@ -57,7 +57,6 @@ The repo contains a environment.yml files which automatically build the correct 
 --cache /some/dir can be specified to have a fixed, shared location to store the conda build for use by multiple runs of the workflow.
 
 #### Config
-Common configuration options are set in `conf/base.config`. Workflow specific configuration options are set in `conf/illumina.config` They are described and set to sensible defaults (as suggested in the [nCoV-2019 novel coronavirus bioinformatics protocol](https://artic.network/ncov-2019/ncov2019-bioinformatics-sop.html "nCoV-2019 novel coronavirus bioinformatics protocol"))
 
 Important config options are:
 

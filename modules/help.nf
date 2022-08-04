@@ -10,33 +10,35 @@ def printHelp() {
     All options set via CLI can be set in conf directory
 
   Nextflow arguments (single DASH):
-    -profile                  Allowed values: conda
+    -profile                      Allowed values: conda
  
   Workflow options:
     Mandatory:
-      --prefix                A (unique) string prefix for output files.
-                              Sequencing run name is a good choice e.g DDMMYY_MACHINEID_RUN_FLOWCELLID.
-      --directory             Path to a directory containing paired-end Illumina reads. 
-                              Reads will be found and paired RECURSIVELY beneath this directory.
+      --prefix                    A (unique) string prefix for output files.
+                                  Sequencing run name is a good choice e.g DDMMYY_MACHINEID_RUN_FLOWCELLID.
+      --directory                 Path to a directory containing paired-end Illumina reads. 
+                                  Reads will be found and paired RECURSIVELY beneath this directory.
     Optional:
-      --outdir                Output directory (Default: ./results)
+      --outdir                    Output directory (Default: ./results)
 
-      --schemeVersion         ARTIC scheme version (Default: 'V2.3')
-      --schemeRepoURL         Repo to download your primer scheme from (Default: 'https://github.com/BCCDC-PHL/artic-mpxv2022')
-      --schemeDir             Directory within schemeRepoURL that contains primer schemes (Default: 'primer_schemes')
-      --scheme                Scheme name (Default: 'mpxv-2022')
+      --schemeVersion             ARTIC scheme version (Default: 'V2.3')
+      --schemeRepoURL             Repo to download your primer scheme from (Default: 'https://github.com/BCCDC-PHL/artic-mpxv2022')
+      --schemeDir                 Directory within schemeRepoURL that contains primer schemes (Default: 'primer_schemes')
+      --scheme                    Scheme name (Default: 'mpxv-2022')
  
-      --bed                   Path to primer bed file, also requires --ref
-                              Overrides --scheme* options. (Default: unset, download scheme from git)
-      --ref                   Path to iVar-compatible reference fasta file, also requires --bed 
-                              Overrides --scheme* options. (Default: unset, download scheme from git)
-      --primer_pairs_tsv      File showing which primers are paired.
-      --keepLen               Length (bp) of reads to keep after primer trimming (Default: 50)
-      --qualThreshold         Sliding window quality threshold for keeping
-                              reads after primer trimming (Default: 20)
-      --varMinFreqThreshold   Frequency threshold to call ambiguous variant (Default: 0.25)
-      --varFreqThreshold      Frequency threshold for unambiguous variant (Default: 0.75)
-      --varMinDepth           Minimum coverage depth to call variant (Default: 10)
+      --bed                       Path to primer bed file, also requires --ref
+                                  Overrides --scheme* options. (Default: unset, download scheme from git)
+      --ref                       Path to iVar-compatible reference fasta file, also requires --bed 
+                                  Overrides --scheme* options. (Default: unset, download scheme from git)
+      --primer_pairs_tsv          File showing which primers are paired.
+      --keepLen                   Length (bp) of reads to keep after primer trimming (Default: 50)
+      --qualThreshold             Sliding window quality threshold for keeping
+                                  reads after primer trimming (Default: 20)
+      --normalizationTargetDepth  Target depth of coverage to normalize to.
+      --normalizationMinDepth     Minimum depth of coverage to normalize to.
+      --varMinFreqThreshold       Frequency threshold to call ambiguous variant (Default: 0.25)
+      --varFreqThreshold          Frequency threshold for unambiguous variant (Default: 0.75)
+      --varMinDepth               Minimum coverage depth to call variant (Default: 10)
 
   """.stripIndent()
 }
