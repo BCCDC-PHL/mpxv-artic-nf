@@ -71,6 +71,7 @@ def make_qc_plot(depth_pos, n_density, ref_length, samplename, min_depth, amplic
 
     ax_amplicons.set_ylim(top=4, bottom=0)
     ax_amplicons.yaxis.set_visible(False)
+    ax_amplicons.xaxis.set_visible(False)
 
     plt.xlim(left=0)
     plt.title(samplename)
