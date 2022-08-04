@@ -12,7 +12,7 @@ process makeQCCSV {
 
     script:
     """
-    qc.py --outfile ${params.prefix}.${sampleName}.qc.csv --sample ${sampleName} --ref ${ref} --bam ${bam} --fasta ${fasta} --primer-bed ${primer_bed} --primer-pairs ${primer_pairs}
+    qc.py --outfile ${params.prefix}.${sampleName}.qc.csv --sample ${sampleName} --ref ${ref} --bam ${bam} --fasta ${fasta} --primer-bed ${primer_bed} --primer-pairs ${primer_pairs} --min-depth ${params.varMinDepth}
     """
 }
 
