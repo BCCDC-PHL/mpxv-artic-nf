@@ -12,6 +12,7 @@ flowchart TD
   ref[ref.fa]
   composite_ref[composite_ref.fa]
   primers[primer.bed]
+  primer_pairs[primer_pairs.tsv]
   fastq[fastq_dir]
   fastq --> performHostFilter(performHostFilter)
   composite_ref --> performHostFilter
@@ -30,6 +31,8 @@ flowchart TD
   callConsensusFreebayes --> consensus[consensus.fa]
   callConsensusFreebayes --> variants[variants.vcf]
   ref --> makeQCCSV
+  primers --> makeQCCSV
+  primer_pairs --> makeQCCSV
   makeQCCSV --> qcCSV(qc.csv)
   makeQCCSV --> depthPNG(depth.png)
 ```
