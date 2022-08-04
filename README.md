@@ -31,6 +31,7 @@ flowchart TD
   callConsensusFreebayes --> variants[variants.vcf]
   ref --> makeQCCSV
   makeQCCSV --> qcCSV(qc.csv)
+  makeQCCSV --> depthPNG(depth.png)
 ```
 
 #### Quick-start
