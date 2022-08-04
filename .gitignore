@@ -3,3 +3,5 @@ nextflow
 results
 *.sif
 work
+test_output
+test_input

@@ -1,3 +1,48 @@
+process performHostFilter {
+
+    tag { sampleName }
+
+    publishDir "${params.outdir}/${task.process.replaceAll(":","_")}", pattern: "${sampleName}_hostfiltered_R*.fastq.gz", mode: 'copy'
+
+    input:
+    tuple val(sampleName), path(forward), path(reverse)
+
+    output:
+    tuple val(sampleName), path("${sampleName}_hostfiltered_R1.fastq.gz"), path("${sampleName}_hostfiltered_R2.fastq.gz"), emit: fastqPairs
+
+    script:
+    """
+    bwa mem -t ${task.cpus} ${params.composite_ref} ${forward} ${reverse} | \
+      filter_non_human_reads.py -c ${params.viral_contig_name} > ${sampleName}.viral_and_nonmapping_reads.bam
+    samtools sort -@ ${task.cpus} -n ${sampleName}.viral_and_nonmapping_reads.bam | \
+      samtools fastq -1 ${sampleName}_hostfiltered_R1.fastq.gz -2 ${sampleName}_hostfiltered_R2.fastq.gz -s ${sampleName}_singletons.fastq.gz -
+    """
+}
+
+process normalizeDepth {
+
+    tag { sampleName }
+
+    publishDir "${params.outdir}/${task.process.replaceAll(":","_")}", pattern: '*_norm_R{1,2}.fq.gz', mode: 'copy'
+
+    input:
+    tuple val(sampleName), path(forward), path(reverse)
+
+    output:
+    tuple val(sampleName), path("${sampleName}_norm_R1.fq.gz"), path("${sampleName}_norm_R2.fq.gz")
+
+    script:
+    """
+    bbnorm.sh \
+      target=${params.normalizationTargetDepth} \
+      mindepth=${params.normalizationMinDepth} \
+      in=${forward} \
+      in2=${reverse} \
+      out=${sampleName}_norm_R1.fq.gz \
+      out2=${sampleName}_norm_R2.fq.gz
+    """
+}
+
 process readTrimming {
     /**
     * Trims paired fastq using trim_galore (https://github.com/FelixKrueger/TrimGalore)
@@ -12,10 +57,10 @@ process readTrimming {
     cpus 1
 
     input:
-    tuple(sampleName, path(forward), path(reverse))
+    tuple val(sampleName), path(forward), path(reverse)
 
     output:
-    tuple(sampleName, path("*_val_1.fq.gz"), path("*_val_2.fq.gz")) optional true
+    tuple val(sampleName), path("*_val_1.fq.gz"), path("*_val_2.fq.gz"), optional: true
 
     script:
     """
@@ -42,10 +87,10 @@ process filterResidualAdapters {
     cpus 1
 
     input:
-    tuple(sampleName, path(forward), path(reverse))
+    tuple val(sampleName), path(forward), path(reverse)
 
     output:
-    tuple(sampleName, path("*1_posttrim_filter.fq.gz"), path("*2_posttrim_filter.fq.gz"))
+    tuple val(sampleName), path("*1_posttrim_filter.fq.gz"), path("*2_posttrim_filter.fq.gz")
 
     script:
     """
@@ -88,10 +133,10 @@ process readMapping {
     publishDir "${params.outdir}/${task.process.replaceAll(":","_")}", pattern: "${sampleName}.sorted{.bam,.bam.bai}", mode: 'copy'
 
     input:
-        tuple sampleName, path(forward), path(reverse), path(ref), path("*")
+        tuple val(sampleName), path(forward), path(reverse), path(ref), path("*")
 
     output:
-        tuple(sampleName, path("${sampleName}.sorted.bam"), path("${sampleName}.sorted.bam.bai"))
+        tuple val(sampleName), path("${sampleName}.sorted.bam"), path("${sampleName}.sorted.bam.bai")
 
     script:
         """
@@ -109,72 +154,20 @@ process trimPrimerSequences {
     publishDir "${params.outdir}/${task.process.replaceAll(":","_")}", pattern: "${sampleName}.mapped.primertrimmed.sorted{.bam,.bam.bai}", mode: 'copy'
 
     input:
-    tuple sampleName, path(bam), path(bam_index), path(bedfile)
+    tuple val(sampleName), path(bam), path(bam_index), path(bedfile)
 
     output:
-    tuple sampleName, path("${sampleName}.mapped.bam"), path("${sampleName}.mapped.bam.bai"), emit: mapped
-    tuple sampleName, path("${sampleName}.mapped.primertrimmed.sorted.bam"), path("${sampleName}.mapped.primertrimmed.sorted.bam.bai" ), emit: ptrim
+    tuple val(sampleName), path("${sampleName}.mapped.bam"), path("${sampleName}.mapped.bam.bai"), emit: mapped
+    tuple val(sampleName), path("${sampleName}.mapped.primertrimmed.sorted.bam"), path("${sampleName}.mapped.primertrimmed.sorted.bam.bai" ), emit: ptrim
 
     script:
-    if (params.allowNoprimer){
-        ivarCmd = "ivar trim -e"
-    } else {
-        ivarCmd = "ivar trim"
-    }
-        """
-        samtools view -F4 -o ${sampleName}.mapped.bam ${bam}
-        samtools index ${sampleName}.mapped.bam
-        ${ivarCmd} -i ${sampleName}.mapped.bam -b ${bedfile} -m ${params.illuminaKeepLen} -q ${params.illuminaQualThreshold} -f ${params.primer_pairs_tsv} -p ivar.out
-        samtools sort -o ${sampleName}.mapped.primertrimmed.sorted.bam ivar.out.bam
-        samtools index ${sampleName}.mapped.primertrimmed.sorted.bam
-        """
-}
-
-process callVariants {
-
-    tag { sampleName }
-
-    publishDir "${params.outdir}/${task.process.replaceAll(":","_")}", pattern: "${sampleName}.variants.tsv", mode: 'copy'
-
-    input:
-    tuple val(sampleName), path(bam), path(bam_index), path(ref), path(gff)
-
-    output:
-    tuple val(sampleName), path("${sampleName}.variants.tsv")
-
-    script:
-    def gff_arg = gff.name == 'NO_FILE' ? "" : "-g ${gff}"
-        """
-        samtools faidx ${ref}
-        samtools mpileup -A -d 0 --reference ${ref} -B -Q 0 ${bam} |\
-        ivar variants -r ${ref} -m ${params.varMinDepth} -p ${sampleName}.variants -q ${params.ivarMinVariantQuality} -t ${params.varMinFreqThreshold} ${gff_arg}
-        """
-}
-
-process makeConsensus {
-
-    tag { sampleName }
-
-    publishDir "${params.outdir}/${task.process.replaceAll(":","_")}", pattern: "${sampleName}.primertrimmed.consensus.fa", mode: 'copy'
-
-    input:
-        tuple(sampleName, path(bam), path(bam_index))
-
-    output:
-        tuple(sampleName, path("${sampleName}.primertrimmed.consensus.fa"))
-
-    script:
-        """
-        samtools mpileup -aa -A -B -d ${params.mpileupDepth} -Q0 ${bam} | \
-        ivar consensus -t ${params.varFreqThreshold} -m ${params.varMinDepth} \
-        -n N -p ${sampleName}.primertrimmed.consensus
-        # If the consensus sequence is empty, fill it with 29903 'N' characters.
-        if [[ \$(tail -n 1 ${sampleName}.primertrimmed.consensus.fa | tr -d '\n' | wc -c) == 0 ]]
-        then
-          mv ${sampleName}.primertrimmed.consensus.fa ${sampleName}.primertrimmed.consensus.no_seq.fa
-          cat <(head -n 1 ${sampleName}.primertrimmed.consensus.no_seq.fa) <(head -c 29903 < /dev/zero | tr '\\0' 'N') <(echo) > ${sampleName}.primertrimmed.consensus.fa
-        fi
-        """
+    """
+    samtools view -F4 -o ${sampleName}.mapped.bam ${bam}
+    samtools index ${sampleName}.mapped.bam
+    ivar trim -e -i ${sampleName}.mapped.bam -b ${bedfile} -m ${params.illuminaKeepLen} -q ${params.illuminaQualThreshold} -f ${params.primer_pairs_tsv} -p ivar.out
+    samtools sort -o ${sampleName}.mapped.primertrimmed.sorted.bam ivar.out.bam
+    samtools index ${sampleName}.mapped.primertrimmed.sorted.bam
+    """
 }
 
 process callConsensusFreebayes {
@@ -193,8 +186,6 @@ process callConsensusFreebayes {
 
     script:
         """
-        # the sed is to fix the header until a release is made with this fix
-        # https://github.com/freebayes/freebayes/pull/549
         freebayes -p 1 \
                   -f ${ref} \
                   -F 0.2 \
@@ -232,28 +223,6 @@ process callConsensusFreebayes {
         """
 }
 
-process cramToFastq {
-    /**
-    * Converts CRAM to fastq (http://bio-bwa.sourceforge.net/)
-    * Uses samtools to convert to CRAM, to FastQ (http://www.htslib.org/doc/samtools.html)
-    * @input
-    * @output
-    */
-
-    input:
-        tuple sampleName, file(cram)
-
-    output:
-        tuple sampleName, path("${sampleName}_1.fastq.gz"), path("${sampleName}_2.fastq.gz")
-
-    script:
-        """
-        samtools collate -u ${cram} -o tmp.bam
-        samtools fastq -1 ${sampleName}_1.fastq.gz -2 ${sampleName}_2.fastq.gz tmp.bam
-        rm tmp.bam
-        """
-}
-
 process alignConsensusToReference {
     /**
     * Aligns consensus sequence against reference using mafft. Uses the --keeplength
@@ -265,10 +234,10 @@ process alignConsensusToReference {
     publishDir "${params.outdir}/${task.process.replaceAll(":","_")}", pattern: "${sampleName}.consensus.aln.fa", mode: 'copy'
 
     input:
-        tuple(sampleName, path(consensus), path(reference))
+        tuple val(sampleName), path(consensus), path(reference)
 
     output:
-        tuple(sampleName, path("${sampleName}.consensus.aln.fa"))
+        tuple val(sampleName), path("${sampleName}.consensus.aln.fa")
 
     script:
         // Convert multi-line fasta to single line
@@ -283,31 +252,6 @@ process alignConsensusToReference {
           > ${sampleName}.with_ref.multi_line.alignment.fa
         awk '${awk_string}' ${sampleName}.with_ref.multi_line.alignment.fa > ${sampleName}.with_ref.single_line.alignment.fa
         tail -n 2 ${sampleName}.with_ref.single_line.alignment.fa > ${sampleName}.consensus.aln.fa
-        """
-}
-
-process trimUTRFromAlignment {
-    /**
-    * Trim the aligned consensus to remove 3' and 5' UTR sequences.
-    */
-
-    tag { sampleName }
-
-    publishDir "${params.outdir}/${task.process.replaceAll(":","_")}", pattern: "${sampleName}.consensus.aln.utr_trimmed.fa", mode: 'copy'
-
-    input:
-        tuple(sampleName, path(alignment))
-
-    output:
-        tuple(sampleName, path("${sampleName}.consensus.aln.utr_trimmed.fa"))
-
-    script:
-    awk_string = '/^>/ { printf("%s\\n", $0); next; } { printf("%s", $0); } END { printf("\\n"); }'
-        """
-        echo -e "\$(head -n 1 ${alignment} | cut -c 2-):266-29674" > non_utr.txt
-        samtools faidx ${alignment}
-        samtools faidx -r non_utr.txt ${alignment} > ${sampleName}.consensus.aln.utr_trimmed.multi_line.fa
-        awk '${awk_string}' ${sampleName}.consensus.aln.utr_trimmed.multi_line.fa > ${sampleName}.consensus.aln.utr_trimmed.fa
         """
 }
 
