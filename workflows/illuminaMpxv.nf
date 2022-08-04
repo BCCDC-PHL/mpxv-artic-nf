@@ -115,14 +115,9 @@ workflow sequenceAnalysis {
 
       makeQCCSV.out.csv.splitCsv()
                        .unique()
-                       .branch {
-                           header: it[-1] == 'qc_pass'
-                           fail: it[-1] == 'FALSE'
-                           pass: it[-1] == 'TRUE'
-    		       }
                        .set { qc }
 
-      writeQCSummaryCSV(qc.header.concat(qc.pass).concat(qc.fail).toList())
+      writeQCSummaryCSV(qc.toList())
 
       collateSamples(callConsensusFreebayes.out.consensus.join(trimPrimerSequences.out.mapped))
 
