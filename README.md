@@ -26,6 +26,7 @@ flowchart TD
   trimPrimerSequences(trimPrimerSequences) --> callConsensusFreebayes(callConsensusFreebayes)
   callConsensusFreebayes(callConsensusFreebayes) --> alignConsensusToReference(alignConsensusToReference)
   ref --> alignConsensusToReference
+  alignConsensusToReference --> consensusAlignment[consensus.aln.fa]
   trimPrimerSequences --> makeQCCSV(makeQCCSV)
   callConsensusFreebayes --> makeQCCSV
   callConsensusFreebayes --> consensus[consensus.fa]
