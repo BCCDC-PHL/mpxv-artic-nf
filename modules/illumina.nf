@@ -106,16 +106,16 @@ process indexReference {
     tag { ref }
 
     input:
-        path(ref)
+    path(ref)
 
     output:
-        tuple path('ref.fa'), path('ref.fa.*')
+    tuple path('ref.fa'), path('ref.fa.*')
 
     script:
-        """
-        ln -s ${ref} ref.fa
-        bwa index ref.fa
-        """
+    """
+    ln -s ${ref} ref.fa
+    bwa index ref.fa
+    """
 }
 
 process readMapping {
@@ -133,17 +133,17 @@ process readMapping {
     publishDir "${params.outdir}/${task.process.replaceAll(":","_")}", pattern: "${sampleName}.sorted{.bam,.bam.bai}", mode: 'copy'
 
     input:
-        tuple val(sampleName), path(forward), path(reverse), path(ref), path("*")
+    tuple val(sampleName), path(forward), path(reverse), path(ref), path("*")
 
     output:
-        tuple val(sampleName), path("${sampleName}.sorted.bam"), path("${sampleName}.sorted.bam.bai")
+    tuple val(sampleName), path("${sampleName}.sorted.bam"), path("${sampleName}.sorted.bam.bai")
 
     script:
-        """
-        bwa mem -t ${task.cpus} ${ref} ${forward} ${reverse} | \
-        samtools sort -o ${sampleName}.sorted.bam
-        samtools index ${sampleName}.sorted.bam
-        """
+    """
+    bwa mem -t ${task.cpus} ${ref} ${forward} ${reverse} | \
+    samtools sort -o ${sampleName}.sorted.bam
+    samtools index ${sampleName}.sorted.bam
+    """
 }
 
 process trimPrimerSequences {
@@ -185,42 +185,44 @@ process callConsensusFreebayes {
     tuple val(sampleName), path("${sampleName}.variants.norm.vcf"), emit: variants
 
     script:
-        """
-        freebayes -p 1 \
-                  -f ${ref} \
-                  -F 0.2 \
-                  -C 1 \
-                  --pooled-continuous \
-                  --min-coverage ${params.varMinDepth} \
-                  --gvcf --gvcf-dont-use-chunk true ${bam} | sed s/QR,Number=1,Type=Integer/QR,Number=1,Type=Float/ > ${sampleName}.gvcf
+    """
+    # the sed is to fix the header until a release is made with this fix
+    # https://github.com/freebayes/freebayes/pull/549
+    freebayes -p 1 \
+              -f ${ref} \
+              -F 0.2 \
+              -C 1 \
+              --pooled-continuous \
+              --min-coverage ${params.varMinDepth} \
+              --gvcf --gvcf-dont-use-chunk true ${bam} | sed s/QR,Number=1,Type=Integer/QR,Number=1,Type=Float/ > ${sampleName}.gvcf
 
-        # make depth mask, split variants into ambiguous/consensus
-        # NB: this has to happen before bcftools norm or else the depth mask misses any bases exposed during normalization
-        process_gvcf.py -d ${params.varMinDepth} \
-                        -l ${params.varMinFreqThreshold} \
-                        -u ${params.varFreqThreshold} \
-                        -m ${sampleName}.mask.txt \
-                        -v ${sampleName}.variants.vcf \
-                        -c ${sampleName}.consensus.vcf ${sampleName}.gvcf
+    # make depth mask, split variants into ambiguous/consensus
+    # NB: this has to happen before bcftools norm or else the depth mask misses any bases exposed during normalization
+    process_gvcf.py -d ${params.varMinDepth} \
+                    -l ${params.varMinFreqThreshold} \
+                    -u ${params.varFreqThreshold} \
+                    -m ${sampleName}.mask.txt \
+                    -v ${sampleName}.variants.vcf \
+                    -c ${sampleName}.consensus.vcf ${sampleName}.gvcf
 
-        # normalize variant records into canonical VCF representation
-        for v in "variants" "consensus"; do
-            bcftools norm -f ${ref} ${sampleName}.\$v.vcf > ${sampleName}.\$v.norm.vcf
-        done
+    # normalize variant records into canonical VCF representation
+    for v in "variants" "consensus"; do
+        bcftools norm -f ${ref} ${sampleName}.\$v.vcf > ${sampleName}.\$v.norm.vcf
+    done
 
-        # split the consensus sites file into a set that should be IUPAC codes and all other bases, using the ConsensusTag in the VCF
-        for vt in "ambiguous" "fixed"; do
-            cat ${sampleName}.consensus.norm.vcf | awk -v vartag=ConsensusTag=\$vt '\$0 ~ /^#/ || \$0 ~ vartag' > ${sampleName}.\$vt.norm.vcf
-            bgzip -f ${sampleName}.\$vt.norm.vcf
-            tabix -f -p vcf ${sampleName}.\$vt.norm.vcf.gz
-        done
+    # split the consensus sites file into a set that should be IUPAC codes and all other bases, using the ConsensusTag in the VCF
+    for vt in "ambiguous" "fixed"; do
+        cat ${sampleName}.consensus.norm.vcf | awk -v vartag=ConsensusTag=\$vt '\$0 ~ /^#/ || \$0 ~ vartag' > ${sampleName}.\$vt.norm.vcf
+        bgzip -f ${sampleName}.\$vt.norm.vcf
+        tabix -f -p vcf ${sampleName}.\$vt.norm.vcf.gz
+    done
 
-        # apply ambiguous variants first using IUPAC codes. this variant set cannot contain indels or the subsequent step will break
-        bcftools consensus -f ${ref} -I ${sampleName}.ambiguous.norm.vcf.gz > ${sampleName}.ambiguous.fa
+    # apply ambiguous variants first using IUPAC codes. this variant set cannot contain indels or the subsequent step will break
+    bcftools consensus -f ${ref} -I ${sampleName}.ambiguous.norm.vcf.gz > ${sampleName}.ambiguous.fa
 
-        # apply remaninng variants, including indels
-        bcftools consensus -f ${sampleName}.ambiguous.fa -m ${sampleName}.mask.txt ${sampleName}.fixed.norm.vcf.gz | sed s/${params.viral_contig_name}/${sampleName}/ > ${sampleName}.consensus.fa
-        """
+    # apply remaninng variants, including indels
+    bcftools consensus -f ${sampleName}.ambiguous.fa -m ${sampleName}.mask.txt ${sampleName}.fixed.norm.vcf.gz | sed s/${params.viral_contig_name}/${sampleName}/ > ${sampleName}.consensus.fa
+    """
 }
 
 process alignConsensusToReference {
@@ -234,25 +236,25 @@ process alignConsensusToReference {
     publishDir "${params.outdir}/${task.process.replaceAll(":","_")}", pattern: "${sampleName}.consensus.aln.fa", mode: 'copy'
 
     input:
-        tuple val(sampleName), path(consensus), path(reference)
+    tuple val(sampleName), path(consensus), path(reference)
 
     output:
-        tuple val(sampleName), path("${sampleName}.consensus.aln.fa")
+    tuple val(sampleName), path("${sampleName}.consensus.aln.fa")
 
     script:
-        // Convert multi-line fasta to single line
-        awk_string = '/^>/ {printf("\\n%s\\n", $0); next; } { printf("%s", $0); }  END { printf("\\n"); }'
-        """
-        mafft \
-          --preservecase \
-          --keeplength \
-          --add \
-          ${consensus} \
-          ${reference} \
-          > ${sampleName}.with_ref.multi_line.alignment.fa
-        awk '${awk_string}' ${sampleName}.with_ref.multi_line.alignment.fa > ${sampleName}.with_ref.single_line.alignment.fa
-        tail -n 2 ${sampleName}.with_ref.single_line.alignment.fa > ${sampleName}.consensus.aln.fa
-        """
+    // Convert multi-line fasta to single line
+    awk_string = '/^>/ {printf("\\n%s\\n", $0); next; } { printf("%s", $0); }  END { printf("\\n"); }'
+    """
+    mafft \
+      --preservecase \
+      --keeplength \
+      --add \
+      ${consensus} \
+      ${reference} \
+      > ${sampleName}.with_ref.multi_line.alignment.fa
+    awk '${awk_string}' ${sampleName}.with_ref.multi_line.alignment.fa > ${sampleName}.with_ref.single_line.alignment.fa
+    tail -n 2 ${sampleName}.with_ref.single_line.alignment.fa > ${sampleName}.consensus.aln.fa
+    """
 }
 
 process annotateVariantsVCF {
