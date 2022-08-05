@@ -25,6 +25,8 @@ process normalizeDepth {
 
     tag { sampleName }
 
+    memory '8 GB'
+
     publishDir "${params.outdir}/${task.process.replaceAll(":","_")}", pattern: '*_norm_R{1,2}.fq.gz', mode: 'copy'
 
     input:
