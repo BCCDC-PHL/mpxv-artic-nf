@@ -2,22 +2,22 @@
 
 nextflow.enable.dsl = 2
 
-include {articDownloadScheme } from '../modules/utils.nf'
-include {performHostFilter} from '../modules/illumina.nf'
-include {normalizeDepth} from '../modules/illumina.nf'
-include {readTrimming} from '../modules/illumina.nf'
-include {filterResidualAdapters} from '../modules/illumina.nf'
-include {indexReference} from '../modules/illumina.nf'
-include {readMapping} from '../modules/illumina.nf'
-include {trimPrimerSequences} from '../modules/illumina.nf'
-include {callConsensusFreebayes} from '../modules/illumina.nf'
-include {annotateVariantsVCF} from '../modules/illumina.nf'
-include {alignConsensusToReference} from '../modules/illumina.nf'
+include { articDownloadScheme }       from '../modules/utils.nf'
+include { performHostFilter }         from '../modules/illumina.nf'
+include { normalizeDepth }            from '../modules/illumina.nf'
+include { readTrimming }              from '../modules/illumina.nf'
+include { filterResidualAdapters }    from '../modules/illumina.nf'
+include { indexReference }            from '../modules/illumina.nf'
+include { readMapping }               from '../modules/illumina.nf'
+include { trimPrimerSequences }       from '../modules/illumina.nf'
+include { callConsensusFreebayes }    from '../modules/illumina.nf'
+include { annotateVariantsVCF }       from '../modules/illumina.nf'
+include { alignConsensusToReference } from '../modules/illumina.nf'
 
-include {makeQCCSV} from '../modules/qc.nf'
-include {writeQCSummaryCSV} from '../modules/qc.nf'
+include { makeQCCSV }         from '../modules/qc.nf'
+include { writeQCSummaryCSV } from '../modules/qc.nf'
 
-include {collateSamples} from '../modules/upload.nf'
+include { collateSamples }    from '../modules/upload.nf'
 
 workflow prepareReferenceFiles {
     // Get reference fasta
@@ -88,11 +88,11 @@ workflow sequenceAnalysis {
 
     main:
 
-      performHostFilter(ch_filePairs)
+      normalizeDepth(ch_filePairs)
 
-      normalizeDepth(performHostFilter.out)
+      performHostFilter(normalizeDepth.out)      
 
-      readTrimming(normalizeDepth.out)
+      readTrimming(performHostFilter.out.fastqPairs)
 
       filterResidualAdapters(readTrimming.out)
 
@@ -119,7 +119,7 @@ workflow sequenceAnalysis {
 
       writeQCSummaryCSV(qc.toList())
 
-      collateSamples(callConsensusFreebayes.out.consensus.join(trimPrimerSequences.out.mapped))
+      collateSamples(callConsensusFreebayes.out.consensus.join(performHostFilter.out.fastqPairs))
 
     emit:
       qc_pass = collateSamples.out
