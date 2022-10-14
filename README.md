@@ -16,9 +16,9 @@ flowchart TD
   fastq[fastq_dir]
   fastq --> performHostFilter(performHostFilter)
   composite_ref --> performHostFilter
-  performHostFilter(performHostFilter) --> normalizeDepth(normalizeDepth)
-  readTrimming(readTrimming) --> filterResidualAdapters(filterResidualAdapters) 
-  normalizeDepth(normalizeDepth) --> readTrimming(readTrimming)
+  normalizeDepth(normalizeDepth) --> performHostFilter(performHostFilter) 
+  performHostFilter(performHostFilter) --> readTrimming(readTrimming)
+  readTrimming(readTrimming) --> filterResidualAdapters(filterResidualAdapters)
   filterResidualAdapters --> readMapping(readMapping)
   ref --> readMapping(readMapping)
   readMapping(readMapping) --> trimPrimerSequences(trimPrimerSequences)
