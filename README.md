@@ -14,7 +14,7 @@ flowchart TD
   primers[primer.bed]
   primer_pairs[primer_pairs.tsv]
   fastq[fastq_dir]
-  fastq --> performHostFilter(performHostFilter)
+  fastq --> normalizeDepth(normalizeDepth)
   composite_ref --> performHostFilter
   normalizeDepth(normalizeDepth) --> performHostFilter(performHostFilter) 
   performHostFilter(performHostFilter) --> readTrimming(readTrimming)
