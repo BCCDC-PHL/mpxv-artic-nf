@@ -25,7 +25,10 @@ process normalizeDepth {
 
     tag { sampleName }
 
-    memory '16 GB'
+    label  'largecpu'
+    memory '32 GB'
+    time   '2h'
+    errorStrategy 'ignore'
 
     publishDir "${params.outdir}/${task.process.replaceAll(":","_")}", pattern: '*_norm_R{1,2}.fq.gz', mode: 'copy'
 
@@ -37,13 +40,18 @@ process normalizeDepth {
 
     script:
     """
+    mkdir tmp
+    memory=\$(echo '${task.memory}' | cut -d ' ' -f 1)
+
     bbnorm.sh \
+      threads=${task.cpus} \
       target=${params.normalizationTargetDepth} \
       mindepth=${params.normalizationMinDepth} \
       in=${forward} \
       in2=${reverse} \
       out=${sampleName}_norm_R1.fq.gz \
-      out2=${sampleName}_norm_R2.fq.gz
+      out2=${sampleName}_norm_R2.fq.gz \
+      tmpdir=tmp \
     """
 }
 
