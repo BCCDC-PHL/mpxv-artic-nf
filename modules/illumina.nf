@@ -25,8 +25,10 @@ process normalizeDepth {
 
     tag { sampleName }
 
-    label 'largecpu'
-    memory '16 GB'
+    label  'largecpu'
+    memory '32 GB'
+    time   '2h'
+    errorStrategy 'ignore'
 
     publishDir "${params.outdir}/${task.process.replaceAll(":","_")}", pattern: '*_norm_R{1,2}.fq.gz', mode: 'copy'
 
