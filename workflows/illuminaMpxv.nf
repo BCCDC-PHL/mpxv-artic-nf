@@ -90,7 +90,7 @@ workflow sequenceAnalysis {
 
       normalizeDepth(ch_filePairs)
 
-      performHostFilter(normalizeDepth.out)      
+      performHostFilter(normalizeDepth.out)
 
       readTrimming(performHostFilter.out.fastqPairs)
 
