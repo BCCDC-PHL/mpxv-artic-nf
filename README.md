@@ -75,6 +75,8 @@ Important config options are:
 | `varFreqThreshold`               | `0.75`   | Allele frequency threshold for unambiguous variant                                                                  |
 | `varMinDepth`                    | `10`     | Minimum coverage depth to call variant                                                                              |
 
+### Depth Normalization
+By default, sequence depth will be normalized using `bbnorm` to the value specified by the `--normalizationTargetDepth` param (default: 200). To skip depth normalization, add the `--skip_normalize_depth` flag.
 
 #### QC
 A script to do some basic QC is provided in `bin/qc.py`. It measures the % of reference bases are covered by `varMinDepth`, and the longest stretch of consensus sequence with no `N` bases. This script does not make a QC pass/fail call.
