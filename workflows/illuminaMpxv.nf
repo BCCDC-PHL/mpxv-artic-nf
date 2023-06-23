@@ -3,8 +3,8 @@
 nextflow.enable.dsl = 2
 
 include { articDownloadScheme }       from '../modules/utils.nf'
-include { performHostFilter }         from '../modules/illumina.nf'
 include { normalizeDepth }            from '../modules/illumina.nf'
+include { performHostFilter }         from '../modules/illumina.nf'
 include { readTrimming }              from '../modules/illumina.nf'
 include { filterResidualAdapters }    from '../modules/illumina.nf'
 include { indexReference }            from '../modules/illumina.nf'
@@ -88,9 +88,13 @@ workflow sequenceAnalysis {
 
     main:
 
-      normalizeDepth(ch_filePairs)
+      if (!params.skip_normalize_depth) {
+        ch_reads_to_hostfilter = normalizeDepth(ch_filePairs)
+      } else {
+        ch_reads_to_hostfilter = ch_filePairs
+      }
 
-      performHostFilter(normalizeDepth.out)
+      performHostFilter(ch_reads_to_hostfilter)
 
       readTrimming(performHostFilter.out.fastqPairs)
 
