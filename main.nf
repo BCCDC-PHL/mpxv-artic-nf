@@ -2,6 +2,9 @@
 
 nextflow.enable.dsl = 2
 
+// Load base.config by default for all pipelines
+includeConfig 'conf/base.config'
+
 // include modules
 include {printHelp} from './modules/help.nf'
 

@@ -2,7 +2,11 @@ process performHostFilter {
 
     tag { sampleName }
 
-    label 'largecpu'
+    label 'process_medium'
+
+    container 'community.wave.seqera.io/library/bwa-mem2_samtools:70a4221ce18b62a7'
+
+    conda 'bioconda::bwa-mem2=2.2.1', 'bioconda::samtools=1.12'
 
     publishDir "${params.outdir}/${task.process.replaceAll(":","_")}", pattern: "${sampleName}_hostfiltered_R*.fastq.gz", mode: 'copy'
 
@@ -25,10 +29,11 @@ process normalizeDepth {
 
     tag { sampleName }
 
-    label  'largecpu'
-    memory '32 GB'
-    time   '2h'
-    errorStrategy 'ignore'
+    label  'process_medium'
+
+    container 'biocontainers/bbmap:38.90--h470a237_0'
+
+    conda 'bioconda::bbmap=38.90'
 
     publishDir "${params.outdir}/${task.process.replaceAll(":","_")}", pattern: '*_norm_R{1,2}.fq.gz', mode: 'copy'
 
@@ -64,9 +69,13 @@ process readTrimming {
 
     tag { sampleName }
 
-    publishDir "${params.outdir}/${task.process.replaceAll(":","_")}", pattern: '*_val_{1,2}.fq.gz', mode: 'copy'
+    label 'process_single'
 
-    cpus 1
+    container 'biocontainers/trim-galore:0.6.10--hdfd78af_0'
+
+    conda 'bioconda::trim-galore=0.6.10'
+
+    publishDir "${params.outdir}/${task.process.replaceAll(":","_")}", pattern: '*_val_{1,2}.fq.gz', mode: 'copy'
 
     input:
     tuple val(sampleName), path(forward), path(reverse)
@@ -94,9 +103,13 @@ process filterResidualAdapters {
 
     tag { sampleName }
 
-    publishDir "${params.outdir}/${task.process.replaceAll(":","_")}", pattern: '*{1,2}_posttrim_filter.fq.gz', mode: 'copy'
+    label 'process_single'
 
-    cpus 1
+    container 'biocontainers/pysam:0.22.1--py39h61809e1_2'
+
+    conda 'bioconda::pysam=0.22.1'
+
+    publishDir "${params.outdir}/${task.process.replaceAll(":","_")}", pattern: '*{1,2}_posttrim_filter.fq.gz', mode: 'copy'
 
     input:
     tuple val(sampleName), path(forward), path(reverse)
@@ -116,6 +129,12 @@ process indexReference {
     */
 
     tag { ref }
+
+    label 'process_single'
+
+    container 'biocontainers/bwa:0.7.17--pl5.22.0_0'
+
+    conda 'bioconda::bwa=0.7.17'
 
     input:
     path(ref)
@@ -140,7 +159,11 @@ process readMapping {
 
     tag { sampleName }
 
-    label 'largecpu'
+    label 'process_medium'
+
+    container 'community.wave.seqera.io/library/bwa-mem2_samtools:70a4221ce18b62a7'
+
+    conda 'bioconda::bwa-mem2=2.2.1', 'bioconda::samtools=1.12'
 
     publishDir "${params.outdir}/${task.process.replaceAll(":","_")}", pattern: "${sampleName}.sorted{.bam,.bam.bai}", mode: 'copy'
 
@@ -161,6 +184,12 @@ process readMapping {
 process trimPrimerSequences {
 
     tag { sampleName }
+
+    label 'process_medium'
+
+    container 'community.wave.seqera.io/library/ivar_samtools:e656be3eda151c7e'
+
+    conda 'bioconda::ivar=1.4.2', 'bioconda::samtools=1.20'
 
     publishDir "${params.outdir}/${task.process.replaceAll(":","_")}", pattern: "${sampleName}.mapped{.bam,.bam.bai}", mode: 'copy'
     publishDir "${params.outdir}/${task.process.replaceAll(":","_")}", pattern: "${sampleName}.mapped.primertrimmed.sorted{.bam,.bam.bai}", mode: 'copy'
@@ -185,6 +214,12 @@ process trimPrimerSequences {
 process callConsensusFreebayes {
 
     tag { sampleName }
+
+    label 'process_single'
+
+    container 'biocontainers/freebayes:1.3.7--h6a68c12_2'
+
+    conda 'bioconda::freebayes=1.3.7'
 
     publishDir "${params.outdir}/${task.process.replaceAll(":","_")}", pattern: "${sampleName}.consensus.fa", mode: 'copy'
     publishDir "${params.outdir}/${task.process.replaceAll(":","_")}", pattern: "${sampleName}.variants.norm.vcf", mode: 'copy'
@@ -245,6 +280,12 @@ process alignConsensusToReference {
 
     tag { sampleName }
 
+    label 'process_single'
+
+    container 'biocontainers/mafft:7.525--h031d066_0'
+
+    conda 'bioconda::mafft=7.525'
+
     publishDir "${params.outdir}/${task.process.replaceAll(":","_")}", pattern: "${sampleName}.consensus.aln.fa", mode: 'copy'
 
     input:
@@ -275,7 +316,11 @@ process annotateVariantsVCF {
 
     tag { sampleName }
 
-    cpus 1
+    label 'process_single'
+
+    container 'biocontainers/bcftools:1.20--h8b25389_1'
+
+    conda 'bioconda::bcftools=1.20'
 
     publishDir "${params.outdir}/${task.process.replaceAll(":","_")}", pattern: "${sampleName}.variants.norm.consequence.{vcf,tsv}", mode: 'copy'
 

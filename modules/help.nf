@@ -21,16 +21,9 @@ def printHelp() {
     Optional:
       --outdir                    Output directory (Default: ./results)
 
-      --schemeVersion             ARTIC scheme version (Default: 'V2.3')
-      --schemeRepoURL             Repo to download your primer scheme from (Default: 'https://github.com/BCCDC-PHL/artic-mpxv2022')
-      --schemeDir                 Directory within schemeRepoURL that contains primer schemes (Default: 'primer_schemes')
-      --scheme                    Scheme name (Default: 'mpxv-2022')
+      --scheme_version            Primer scheme version (Default: 'INRB/V3')
+      --scheme_name               Scheme name (Default: 'MPXV')
  
-      --bed                       Path to primer bed file, also requires --ref
-                                  Overrides --scheme* options. (Default: unset, download scheme from git)
-      --ref                       Path to iVar-compatible reference fasta file, also requires --bed 
-                                  Overrides --scheme* options. (Default: unset, download scheme from git)
-      --primer_pairs_tsv          File showing which primers are paired.
       --keepLen                   Length (bp) of reads to keep after primer trimming (Default: 50)
       --qualThreshold             Sliding window quality threshold for keeping
                                   reads after primer trimming (Default: 20)

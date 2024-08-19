@@ -2,7 +2,7 @@
 
 nextflow.enable.dsl = 2
 
-include { articDownloadScheme }       from '../modules/utils.nf'
+include { get_bed_ref }       from '../modules/utils.nf'
 include { normalizeDepth }            from '../modules/illumina.nf'
 include { performHostFilter }         from '../modules/illumina.nf'
 include { readTrimming }              from '../modules/illumina.nf'
@@ -21,59 +21,35 @@ include { collateSamples }    from '../modules/upload.nf'
 
 workflow prepareReferenceFiles {
     // Get reference fasta
-    if (params.ref) {
-      Channel.fromPath(params.ref)
-              .set{ ch_refFasta }
-    } else {
-      articDownloadScheme()
-      articDownloadScheme.out.reffasta
-                          .set{ ch_refFasta }
-    }
+    // if (params.ref) {
+    //   Channel.fromPath(params.ref)
+    //           .set{ ch_refFasta }
+    // } else {
+    //   articDownloadScheme()
+    //   articDownloadScheme.out.reffasta
+    //                       .set{ ch_refFasta }
+    // }
 
+    scheme_dir_name = "primer-schemes"
+    schemes = """./data/${scheme_dir_name}/${params.scheme_name}"""
+    scheme_dir = file(projectDir.resolve(schemes), type:'file', checkIfExists:true)
+
+    get_bed_ref(params.schemeDir, params.scheme, params.schemeVersion)
+    ch_bedFile = get_bed_ref.out.bed
+    ch_refFasta = get_bed_ref.out.ref
+    ch_gff = get_bed_ref.out.gff
 
     /* Either get BWA aux files from reference 
-       location or make them fresh */
-    
-    if (params.ref) {
-      // Check if all BWA aux files exist, if not, make them
-      bwaAuxFiles = []
-      refPath = new File(params.ref).getAbsolutePath()
-      new File(refPath).getParentFile().eachFileMatch( ~/.*.bwt|.*.pac|.*.ann|.*.amb|.*.sa/) { bwaAuxFiles << it }
-     
-      if ( bwaAuxFiles.size() == 5 ) {
-        Channel.fromPath( bwaAuxFiles )
-               .set{ ch_bwaAuxFiles }
-
-        ch_refFasta.combine(ch_bwaAuxFiles.collect().toList())
-                   .set{ ch_preparedRef }
-      } else {
-        indexReference(ch_refFasta)
-        indexReference.out
-                      .set{ ch_preparedRef }
-      }
-    } else {
-      indexReference(ch_refFasta)
-      indexReference.out
-                    .set{ ch_preparedRef }
-    }
+      location or make them fresh */
   
-    /* If bedfile is supplied, use that,
-       if not, get it from ARTIC github repo */ 
- 
-    if (params.bed) {
-      ch_bedFile = Channel.fromPath(params.bed)
-    } else {
-      ch_bedFile = articDownloadScheme.out.bed
-    }
-
-    ch_gff = Channel.fromPath(params.gff)
-
-    ch_primerPairs = Channel.fromPath(params.primer_pairs_tsv)
+    // Check if all BWA aux files exist, if not, make them
+    indexReference(ch_refFasta)
+    indexReference.out
+                  .set{ ch_preparedRef }
 
     emit:
       bwaindex = ch_preparedRef
       bedfile = ch_bedFile
-      primer_pairs = ch_primerPairs
       gff = ch_gff
 }
 
@@ -83,7 +59,6 @@ workflow sequenceAnalysis {
       ch_filePairs
       ch_preparedRef
       ch_bedFile
-      ch_primerPairs
       ch_gff
 
     main:
@@ -135,7 +110,7 @@ workflow mpxvIllumina {
 
     main:
       prepareReferenceFiles()
-      sequenceAnalysis(ch_filePairs, prepareReferenceFiles.out.bwaindex, prepareReferenceFiles.out.bedfile, prepareReferenceFiles.out.primer_pairs, prepareReferenceFiles.out.gff)
+      sequenceAnalysis(ch_filePairs, prepareReferenceFiles.out.bwaindex, prepareReferenceFiles.out.bedfile, prepareReferenceFiles.out.gff)
 }
 
 

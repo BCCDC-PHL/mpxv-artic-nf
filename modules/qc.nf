@@ -1,5 +1,12 @@
 process makeQCCSV {
+
     tag { sampleName }
+
+    label 'process_single'
+
+    container 'community.wave.seqera.io/library/biopython_matplotlib_pandas:2b7509b8798f6d71'
+
+    conda "conda-forge::matplotlib=3.9.2", "conda-forge::pandas=1.2.2", "conda-forge::biopython=1.84"
 
     publishDir "${params.outdir}/qc_plots", pattern: "${sampleName}.depth.png", mode: 'copy'
 
@@ -12,7 +19,7 @@ process makeQCCSV {
 
     script:
     """
-    qc.py --outfile ${params.prefix}.${sampleName}.qc.csv --sample ${sampleName} --ref ${ref} --bam ${bam} --fasta ${fasta} --primer-bed ${primer_bed} --primer-pairs ${primer_pairs} --min-depth ${params.varMinDepth}
+    qc.py --outfile ${params.prefix}.${sampleName}.qc.csv --sample ${sampleName} --ref ${ref} --bam ${bam} --fasta ${fasta} --primer-bed ${primer_bed} --min-depth ${params.varMinDepth}
     """
 }
 
@@ -20,7 +27,9 @@ process makeQCCSV {
 process writeQCSummaryCSV {
     tag { params.prefix }
 
-    executor 'local'
+    label 'process_single'
+
+    container 'jitesoft/alpine:3.20.2'
 
     input:
     val lines

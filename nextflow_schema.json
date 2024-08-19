@@ -1,0 +1,210 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "$id": "https://raw.githubusercontent.com/./master/nextflow_schema.json",
+  "title": "artic-network/artic-mpxv-illumina-nf",
+  "workflow_title": "Artic Network MPXV Illumina Analysis",
+  "description": "Run Illumina MPXV amplicon sequencing bioinformatics",
+  "demo_url": "",
+  "aws_demo_url": "",
+  "url": "https://github.com/artic-network/artic-mpxv-illumina-nf",
+  "type": "object",
+  "definitions": {
+    "input": {
+      "title": "Input Options",
+      "type": "object",
+      "fa_icon": "fas fa-arrow-right",
+      "description": "Parameters for finding and handling input data for analysis.",
+      "properties": {
+        "directory": {
+          "type": "string",
+          "title": "FASTQ",
+          "format": "path",
+          "description": "FASTQ files to use in the analysis.",
+          "help_text": "Directory containing the input FASTQ files"
+        }
+      },
+      "required": ["fastq"]
+    },
+    "primer_scheme_selection": {
+      "title": "Primer Scheme Selection",
+      "type": "object",
+      "fa_icon": "fas fa-code",
+      "description": "Reference genome related files and options required for the workflow.",
+      "properties": {
+        "scheme_name": {
+          "type": "string",
+          "default": "MPXV",
+          "description": "Primer scheme name.",
+          "help_text": "This should be set to `MPXV`"
+        },
+        "scheme_version": {
+          "type": "string",
+          "default": "INRB/V3",
+          "description": "Primer scheme version.",
+          "help_text": "This is the version of the primer scheme to use.",
+          "enum": ["INRB/V1", "INRB/V2", "INRB/V3"]
+        }
+      }
+    },
+    "output": {
+      "title": "Output Options",
+      "type": "object",
+      "fa_icon": "fas fa-arrow-left",
+      "description": "Parameters for saving and naming workflow outputs.",
+      "properties": {
+        "outdir": {
+          "type": "string",
+          "default": "output",
+          "format": "directory-path",
+          "description": "Directory for output of all workflow results."
+        }
+      },
+      "prefix": {
+        "type": "string",
+        "title": "Prefix",
+        "description": "Prefix for output files.",
+        "help_text": "Prefix for output files, Sequencing run name is a good choice e.g DDMMYY_MACHINEID_RUN_FLOWCELLID."
+      },
+      "required": ["outdir", "prefix"]
+    },
+    "advanced_options": {
+      "title": "Advanced Options",
+      "type": "object",
+      "fa_icon": "far fa-question-circle",
+      "description": "Advanced options for configuring processes inside the workflow.",
+      "help_text": "These advanced options do not need to be changed for typical use, but allow fine tuning of workflows for users who want more control over the workflow.",
+      "properties": {
+        "keepLen": {
+          "type": "integer",
+          "title": "Length threshold",
+          "default": 50,
+          "description": "Length (bp) of reads to keep after primer trimming."
+        },
+        "qualThreshold": {
+          "type": "integer",
+          "title": "Quality threshold",
+          "default": 20,
+          "description": "Sliding window quality threshold for keeping reads after primer trimming."
+        },
+        "normalizationTargetDepth": {
+          "type": "integer",
+          "title": "Normalisation target depth",
+          "default": 200,
+          "description": "Target depth of coverage to normalize to."
+        },
+        "normalizationMinDepth": {
+          "type": "integer",
+          "title": "Normalisation minimum depth",
+          "default": 5,
+          "description": "Maximum read length (default: set by scheme)."
+        },
+        "varMinFreqThreshold": {
+          "type": "number",
+          "title": "Ambiguous variant frequency threshold",
+          "default": 0.25,
+          "description": "Frequency threshold to call ambiguous variant"
+        },
+        "varFreqThreshold": {
+          "type": "number",
+          "title": "Unambiguous variant frequency threshold",
+          "default": 0.75,
+          "description": "Frequency threshold for unambiguous variant."
+        },
+        "varMinDepth": {
+          "type": "integer",
+          "title": "Variant caller minimum depth",
+          "default": 10,
+          "description": "Minimum coverage depth to call variant"
+        }
+      }
+    },
+    "misc": {
+      "title": "Miscellaneous Options",
+      "type": "object",
+      "description": "Everything else.",
+      "default": "",
+      "properties": {
+        "help": {
+          "type": "boolean",
+          "default": false,
+          "description": "Display help text.",
+          "fa_icon": "fas fa-question-circle",
+          "hidden": true
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "$ref": "#/definitions/input"
+    },
+    {
+      "$ref": "#/definitions/primer_scheme_selection"
+    },
+    {
+      "$ref": "#/definitions/output"
+    },
+    {
+      "$ref": "#/definitions/advanced_options"
+    },
+    {
+      "$ref": "#/definitions/misc"
+    }
+  ],
+  "properties": {
+    "aws_image_prefix": {
+      "type": "string",
+      "hidden": true
+    },
+    "aws_queue": {
+      "type": "string",
+      "hidden": true
+    },
+    "_scheme_version": {
+      "type": "string",
+      "hidden": true
+    },
+    "_scheme_name": {
+      "type": "string",
+      "hidden": true
+    },
+    "_min_len": {
+      "type": "string",
+      "hidden": true
+    },
+    "_max_len": {
+      "type": "string",
+      "hidden": true
+    },
+    "_max_softclip_length": {
+      "type": "string",
+      "hidden": true
+    },
+    "_pangolin_options": {
+      "type": "string",
+      "hidden": true
+    },
+    "monochrome_logs": {
+      "type": "boolean"
+    },
+    "validate_params": {
+      "type": "boolean",
+      "default": true
+    },
+    "show_hidden_params": {
+      "type": "boolean"
+    }
+  },
+  "resources": {
+    "recommended": {
+      "cpus": 4,
+      "memory": "8GB"
+    },
+    "minimum": {
+      "cpus": 2,
+      "memory": "4GB"
+    },
+    "run_time": "5 minutes per sample",
+    "arm_support": false
+  }
+}

@@ -16,6 +16,27 @@ process articDownloadScheme{
     """
 }
 
+process get_bed_ref {
+    label 'process_single'
+
+    container 'jitesoft/alpine:3.20.2'
+
+    input:
+        path scheme_dir
+        val scheme_name
+        val scheme_version
+    output:
+        path "scheme.bed", emit: bed
+        path "reference.fasta", emit: ref
+        path "reference.gff3", emit: gff
+
+    """
+    cp ${scheme_name}/${scheme_version}/${scheme_name}.scheme.bed scheme.bed
+    cp ${scheme_name}/${scheme_version}/${scheme_name}.reference.fasta reference.fasta
+    cp ${scheme_name}/${scheme_version}/${scheme_name}.reference.gff3 reference.gff3
+    """
+}
+
 process performHostFilter {
     cpus 1
 
