@@ -41,18 +41,6 @@ if ( ! params.prefix ) {
      }
 } 
 
-def makeFastqSearchPath ( illuminaSuffixes, fastq_exts ) {
-    if ( params.directory ) {
-      def fastq_searchpath = []
-      for (item in illuminaSuffixes){
-          for(thing in fastq_exts){
-              fastq_searchpath.add(params.directory.toString() + '/**' + item.toString() + thing.toString())
-          }
-      }
-      return fastq_searchpath
-    }
-}
-
 
 // main workflow
 workflow {
