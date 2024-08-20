@@ -265,8 +265,11 @@ process callConsensusFreebayes {
     # apply ambiguous variants first using IUPAC codes. this variant set cannot contain indels or the subsequent step will break
     bcftools consensus -f ${ref} -I ${sampleName}.ambiguous.norm.vcf.gz > ${sampleName}.ambiguous.fa
 
+    # Get viral contig name from reference
+    CTG_NAME=\$(head -n1 ${ref} | sed 's/>//')
+
     # apply remaninng variants, including indels
-    bcftools consensus -f ${sampleName}.ambiguous.fa -m ${sampleName}.mask.txt ${sampleName}.fixed.norm.vcf.gz | sed s/${params.viral_contig_name}/${sampleName}/ > ${sampleName}.consensus.fa
+    bcftools consensus -f ${sampleName}.ambiguous.fa -m ${sampleName}.mask.txt ${sampleName}.fixed.norm.vcf.gz | sed s/\$CTG_NAME/${sampleName}/ > ${sampleName}.consensus.fa
     """
 }
 
