@@ -17,9 +17,10 @@ process articDownloadScheme{
 }
 
 process get_bed_ref {
+
     label 'process_single'
 
-    container 'jitesoft/alpine:3.20.2'
+    container 'nextflow/bash:latest'
 
     input:
         path scheme_dir
@@ -38,9 +39,12 @@ process get_bed_ref {
 }
 
 process performHostFilter {
-    cpus 1
 
     tag { sampleName }
+
+    container 'community.wave.seqera.io/library/bwa_pysam_samtools_python:f3b7e3fe2ad2cadc'
+
+    conda 'bioconda::bwa=0.7.18', 'bioconda::samtools=1.20', 'bioconda::python=3.12.5', 'bioconda::pysam=0.22.1'
 
     publishDir "${params.outdir}/${task.process.replaceAll(":","_")}", pattern: "${sampleName}_hostfiltered_R*.fastq.gz", mode: 'copy'
 
@@ -55,26 +59,5 @@ process performHostFilter {
             filter_non_human_reads.py -c ${params.viral_contig_name} > ${sampleName}.viral_and_nonmapping_reads.bam
         samtools sort -n ${sampleName}.viral_and_nonmapping_reads.bam | \
              samtools fastq -1 ${sampleName}_hostfiltered_R1.fastq.gz -2 ${sampleName}_hostfiltered_R2.fastq.gz -s ${sampleName}_singletons.fastq.gz -
-        """
-}
-
-process addCodonPositionToVariants {
-    cpus 1
-
-    executor 'local'
-
-    tag { sampleId }
-
-    publishDir "${params.outdir}/${task.process.replaceAll(":","_")}", pattern: "${sampleName}.variants.with_codon_pos.tsv", mode: 'copy'
-
-    input:
-        tuple val(sampleName), path(variants), path(gff)
-    output:
-        tuple val(sampleName), path("${sampleName}.variants.with_codon_pos.tsv")
-
-    script:
-    def gff_arg = gff.name == 'NO_FILE' ? "" : "-g ${gff}"
-        """
-        ivar_variants_add_codon_position.py ${gff_arg} ${variants} > ${sampleName}.variants.with_codon_pos.tsv
         """
 }

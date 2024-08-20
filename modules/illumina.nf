@@ -4,9 +4,9 @@ process performHostFilter {
 
     label 'process_medium'
 
-    container 'community.wave.seqera.io/library/bwa-mem2_samtools:70a4221ce18b62a7'
+    container 'biocontainers/hostile:1.1.0--pyhdfd78af_0'
 
-    conda 'bioconda::bwa-mem2=2.2.1', 'bioconda::samtools=1.12'
+    conda 'bioconda::hostile=1.1.0'
 
     publishDir "${params.outdir}/${task.process.replaceAll(":","_")}", pattern: "${sampleName}_hostfiltered_R*.fastq.gz", mode: 'copy'
 
@@ -14,14 +14,11 @@ process performHostFilter {
     tuple val(sampleName), path(forward), path(reverse)
 
     output:
-    tuple val(sampleName), path("${sampleName}_hostfiltered_R1.fastq.gz"), path("${sampleName}_hostfiltered_R2.fastq.gz"), emit: fastqPairs
+    tuple val(sampleName), path("*.clean_1.fastq.gz"), path("*.clean_2.fastq.gz"), emit: fastqPairs
 
     script:
     """
-    bwa mem -t ${task.cpus} ${params.composite_ref} ${forward} ${reverse} | \
-      filter_non_human_reads.py -c ${params.viral_contig_name} > ${sampleName}.viral_and_nonmapping_reads.bam
-    samtools sort -@ ${task.cpus} -n ${sampleName}.viral_and_nonmapping_reads.bam | \
-      samtools fastq -1 ${sampleName}_hostfiltered_R1.fastq.gz -2 ${sampleName}_hostfiltered_R2.fastq.gz -s ${sampleName}_singletons.fastq.gz -
+    hostile clean --fastq1 ${forward} --fastq2 ${reverse} --out-dir . --threads ${task.cpus}
     """
 }
 
@@ -31,9 +28,9 @@ process normalizeDepth {
 
     label  'process_medium'
 
-    container 'biocontainers/bbmap:38.90--h470a237_0'
+    container 'community.wave.seqera.io/library/bbmap:39.06--5b971f29ed092959'
 
-    conda 'bioconda::bbmap=38.90'
+    conda 'bioconda::bbmap=39.06'
 
     publishDir "${params.outdir}/${task.process.replaceAll(":","_")}", pattern: '*_norm_R{1,2}.fq.gz', mode: 'copy'
 
@@ -132,7 +129,7 @@ process indexReference {
 
     label 'process_single'
 
-    container 'biocontainers/bwa:0.7.17--pl5.22.0_0'
+    container 'community.wave.seqera.io/library/bwa:0.7.18--324359fbc6e00dba'
 
     conda 'bioconda::bwa=0.7.17'
 
@@ -140,12 +137,11 @@ process indexReference {
     path(ref)
 
     output:
-    tuple path('ref.fa'), path('ref.fa.*')
+    path "${ref}.*"
 
     script:
     """
-    ln -s ${ref} ref.fa
-    bwa index ref.fa
+    bwa index ${ref}
     """
 }
 
@@ -161,14 +157,15 @@ process readMapping {
 
     label 'process_medium'
 
-    container 'community.wave.seqera.io/library/bwa-mem2_samtools:70a4221ce18b62a7'
+    container 'community.wave.seqera.io/library/bwa_samtools:3938c84206f62975'
 
-    conda 'bioconda::bwa-mem2=2.2.1', 'bioconda::samtools=1.12'
+    conda 'bioconda::bwa=0.7.18', 'bioconda::samtools=1.12'
 
     publishDir "${params.outdir}/${task.process.replaceAll(":","_")}", pattern: "${sampleName}.sorted{.bam,.bam.bai}", mode: 'copy'
 
     input:
-    tuple val(sampleName), path(forward), path(reverse), path(ref), path("*")
+    tuple val(sampleName), path(forward), path(reverse), path(ref)
+    path bwaIndex
 
     output:
     tuple val(sampleName), path("${sampleName}.sorted.bam"), path("${sampleName}.sorted.bam.bai")
@@ -205,7 +202,7 @@ process trimPrimerSequences {
     """
     samtools view -F4 -o ${sampleName}.mapped.bam ${bam}
     samtools index ${sampleName}.mapped.bam
-    ivar trim -e -i ${sampleName}.mapped.bam -b ${bedfile} -m ${params.keepLen} -q ${params.qualThreshold} -f ${params.primer_pairs_tsv} -p ivar.out
+    ivar trim -e -i ${sampleName}.mapped.bam -b ${bedfile} -m ${params.keepLen} -q ${params.qualThreshold} -p ivar.out
     samtools sort -o ${sampleName}.mapped.primertrimmed.sorted.bam ivar.out.bam
     samtools index ${sampleName}.mapped.primertrimmed.sorted.bam
     """
@@ -217,9 +214,9 @@ process callConsensusFreebayes {
 
     label 'process_single'
 
-    container 'biocontainers/freebayes:1.3.7--h6a68c12_2'
+    container 'community.wave.seqera.io/library/bcftools_freebayes_pysam_tabix:c16cddc9a1a28b82'
 
-    conda 'bioconda::freebayes=1.3.7'
+    conda 'bioconda::freebayes=1.3.6', 'bioconda::bcftools=1.20', 'bioconda::pysam=0.22.1', 'bioconda::tabix=1.11'
 
     publishDir "${params.outdir}/${task.process.replaceAll(":","_")}", pattern: "${sampleName}.consensus.fa", mode: 'copy'
     publishDir "${params.outdir}/${task.process.replaceAll(":","_")}", pattern: "${sampleName}.variants.norm.vcf", mode: 'copy'
@@ -234,6 +231,7 @@ process callConsensusFreebayes {
     script:
     """
     # the sed is to fix the header until a release is made with this fix
+    #   --gvcf --gvcf-dont-use-chunk true ${bam} | sed s/QR,Number=1,Type=Integer/QR,Number=1,Type=Float/ > ${sampleName}.gvcf
     # https://github.com/freebayes/freebayes/pull/549
     freebayes -p 1 \
               -f ${ref} \
@@ -241,8 +239,8 @@ process callConsensusFreebayes {
               -C 1 \
               --pooled-continuous \
               --min-coverage ${params.varMinDepth} \
-              --gvcf --gvcf-dont-use-chunk true ${bam} | sed s/QR,Number=1,Type=Integer/QR,Number=1,Type=Float/ > ${sampleName}.gvcf
-
+              --gvcf --gvcf-dont-use-chunk true ${bam} > ${sampleName}.gvcf
+ 
     # make depth mask, split variants into ambiguous/consensus
     # NB: this has to happen before bcftools norm or else the depth mask misses any bases exposed during normalization
     process_gvcf.py -d ${params.varMinDepth} \

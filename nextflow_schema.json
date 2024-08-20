@@ -23,7 +23,7 @@
           "help_text": "Directory containing the input FASTQ files"
         }
       },
-      "required": ["fastq"]
+      "required": ["directory"]
     },
     "primer_scheme_selection": {
       "title": "Primer Scheme Selection",
@@ -57,13 +57,13 @@
           "default": "output",
           "format": "directory-path",
           "description": "Directory for output of all workflow results."
+        },
+        "prefix": {
+          "type": "string",
+          "title": "Prefix",
+          "description": "Prefix for output files.",
+          "help_text": "Prefix for output files, Sequencing run name is a good choice e.g DDMMYY_MACHINEID_RUN_FLOWCELLID."
         }
-      },
-      "prefix": {
-        "type": "string",
-        "title": "Prefix",
-        "description": "Prefix for output files.",
-        "help_text": "Prefix for output files, Sequencing run name is a good choice e.g DDMMYY_MACHINEID_RUN_FLOWCELLID."
       },
       "required": ["outdir", "prefix"]
     },

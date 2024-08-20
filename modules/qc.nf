@@ -4,14 +4,14 @@ process makeQCCSV {
 
     label 'process_single'
 
-    container 'community.wave.seqera.io/library/biopython_matplotlib_pandas:2b7509b8798f6d71'
+    container 'community.wave.seqera.io/library/samtools_biopython_matplotlib_pandas:2bb143fe29dc1ce9'
 
-    conda "conda-forge::matplotlib=3.9.2", "conda-forge::pandas=1.2.2", "conda-forge::biopython=1.84"
+    conda "conda-forge::matplotlib=3.9.2", "conda-forge::pandas=2.2.2", "conda-forge::biopython=1.84", "bioconda::samtools=1.20"
 
     publishDir "${params.outdir}/qc_plots", pattern: "${sampleName}.depth.png", mode: 'copy'
 
     input:
-    tuple val(sampleName), path(bam), path(bam_index), path(fasta), path(ref), path(primer_bed), path(primer_pairs)
+    tuple val(sampleName), path(bam), path(bam_index), path(fasta), path(ref), path(primer_bed)
 
     output:
     path "${params.prefix}.${sampleName}.qc.csv", emit: csv
@@ -19,7 +19,7 @@ process makeQCCSV {
 
     script:
     """
-    qc.py --outfile ${params.prefix}.${sampleName}.qc.csv --sample ${sampleName} --ref ${ref} --bam ${bam} --fasta ${fasta} --primer-bed ${primer_bed} --min-depth ${params.varMinDepth}
+    qc.py --outfile ${params.prefix}.${sampleName}.qc.csv --sample ${sampleName} --ref ${ref} --bam ${bam} --fasta ${fasta} --primer-bed ${primer_bed} --min-depth ${params.varMinDepth} --primer-pairs primer-pairs.tsv
     """
 }
 

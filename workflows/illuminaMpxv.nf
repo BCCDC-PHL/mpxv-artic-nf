@@ -2,12 +2,12 @@
 
 nextflow.enable.dsl = 2
 
-include { get_bed_ref }       from '../modules/utils.nf'
+include { get_bed_ref }               from '../modules/utils.nf'
 include { normalizeDepth }            from '../modules/illumina.nf'
 include { performHostFilter }         from '../modules/illumina.nf'
 include { readTrimming }              from '../modules/illumina.nf'
 include { filterResidualAdapters }    from '../modules/illumina.nf'
-include { indexReference }            from '../modules/illumina.nf'
+include { indexReference}             from '../modules/illumina.nf'
 include { readMapping }               from '../modules/illumina.nf'
 include { trimPrimerSequences }       from '../modules/illumina.nf'
 include { callConsensusFreebayes }    from '../modules/illumina.nf'
@@ -34,21 +34,24 @@ workflow prepareReferenceFiles {
     schemes = """./data/${scheme_dir_name}/${params.scheme_name}"""
     scheme_dir = file(projectDir.resolve(schemes), type:'file', checkIfExists:true)
 
-    get_bed_ref(params.schemeDir, params.scheme, params.schemeVersion)
+    get_bed_ref(scheme_dir, params.scheme_name, params.scheme_version)
     ch_bedFile = get_bed_ref.out.bed
     ch_refFasta = get_bed_ref.out.ref
     ch_gff = get_bed_ref.out.gff
 
+
     /* Either get BWA aux files from reference 
       location or make them fresh */
   
-    // Check if all BWA aux files exist, if not, make them
+    // Index the reference
     indexReference(ch_refFasta)
+
     indexReference.out
-                  .set{ ch_preparedRef }
+      .set{ ch_bwaIndex }
 
     emit:
-      bwaindex = ch_preparedRef
+      bwaIndex = ch_bwaIndex
+      reference = ch_refFasta
       bedfile = ch_bedFile
       gff = ch_gff
 }
@@ -58,39 +61,45 @@ workflow sequenceAnalysis {
     take:
       ch_filePairs
       ch_preparedRef
+      ch_bwaIndex
       ch_bedFile
       ch_gff
 
     main:
 
-      if (!params.skip_normalize_depth) {
-        ch_reads_to_hostfilter = normalizeDepth(ch_filePairs)
-      } else {
-        ch_reads_to_hostfilter = ch_filePairs
-      }
+      // if (!params.skip_normalize_depth) {
+      //   ch_reads_to_hostfilter = normalizeDepth(ch_filePairs)
+      // } else {
+      //   ch_reads_to_hostfilter = ch_filePairs
+      // }
 
-      performHostFilter(ch_reads_to_hostfilter)
+      performHostFilter(ch_filePairs)
 
       readTrimming(performHostFilter.out.fastqPairs)
 
       filterResidualAdapters(readTrimming.out)
 
-      readMapping(filterResidualAdapters.out.combine(ch_preparedRef))
+      readMapping(filterResidualAdapters.out.combine(ch_preparedRef), ch_bwaIndex)
 
       trimPrimerSequences(readMapping.out.combine(ch_bedFile))
 
-      callConsensusFreebayes(trimPrimerSequences.out.ptrim.combine(ch_preparedRef.map{ it[0] }))
+      callConsensusFreebayes(trimPrimerSequences.out.ptrim.combine(ch_preparedRef))
 
       if (params.gff != 'NO_FILE') {
-        annotateVariantsVCF(callConsensusFreebayes.out.variants.combine(ch_preparedRef.map{ it[0] }).combine(ch_gff))
+        annotateVariantsVCF(callConsensusFreebayes.out.variants.combine(ch_preparedRef).combine(ch_gff))
       }
 
-      alignConsensusToReference(callConsensusFreebayes.out.consensus.combine(ch_preparedRef.map{ it[0] }))
+      alignConsensusToReference(callConsensusFreebayes.out.consensus.combine(ch_preparedRef))
+
+      trimPrimerSequences.out.ptrim.join(callConsensusFreebayes.out.consensus, by: 0)
+          .combine(ch_preparedRef)
+				  .combine(ch_bedFile)
+          .view()
 
       makeQCCSV(trimPrimerSequences.out.ptrim.join(callConsensusFreebayes.out.consensus, by: 0)
-                                   .combine(ch_preparedRef.map{ it[0] })
-				   .combine(ch_bedFile)
-				   .combine(ch_primerPairs))
+          .combine(ch_preparedRef)
+				  .combine(ch_bedFile)
+          )
 
       makeQCCSV.out.csv.splitCsv()
                        .unique()
@@ -110,7 +119,7 @@ workflow mpxvIllumina {
 
     main:
       prepareReferenceFiles()
-      sequenceAnalysis(ch_filePairs, prepareReferenceFiles.out.bwaindex, prepareReferenceFiles.out.bedfile, prepareReferenceFiles.out.gff)
+      sequenceAnalysis(ch_filePairs, prepareReferenceFiles.out.reference, prepareReferenceFiles.out.bwaIndex, prepareReferenceFiles.out.bedfile, prepareReferenceFiles.out.gff)
 }
 
 

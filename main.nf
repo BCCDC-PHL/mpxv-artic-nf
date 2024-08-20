@@ -13,11 +13,6 @@ if (params.help){
     exit 0
 }
 
-if (params.profile){
-    println("Profile should have a single dash: -profile")
-    System.exit(1)
-}
-
 if ( !params.directory ) {
   println("Please supply a directory containing fastqs or CRAMs with --directory.")
   println("Use --help to print help")

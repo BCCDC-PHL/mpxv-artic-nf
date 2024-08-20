@@ -73,7 +73,8 @@ def make_qc_plot(
     ax_n_density.plot(n_df["n_density"], color="r", linewidth=0.5)
     ax_n_density.set_ylim(top=1, bottom=0)
 
-    ax_amplicons.get_shared_x_axes().join(ax_amplicons, ax_depth)
+    # ax_amplicons.get_shared_x_axes().join(ax_amplicons, ax_depth)
+    ax_amplicons.sharex(ax_depth)
     ax_amplicons.plot()
 
     amplicon_pool_colors = {
@@ -129,7 +130,7 @@ def read_depth_file(bamfile):
 def read_primers(
     primer_bed_path,
     primer_name_delimiter="_",
-    amplicon_number_offset=2,
+    amplicon_number_offset=1,
 ):
 
     primers_by_name = {}
@@ -138,28 +139,35 @@ def read_primers(
             fields = line.strip().split("\t")
             start = int(fields[1])
             end = int(fields[2])
-            # name = fields[3]
+            name = fields[3]
             # I cannot believe that I have to do this, what sort of a god would allow such things to occur?
-            name = "_".join(str(x) for x in fields[3].split("_")[0:2])
-            pair_name = (
-                name.replice("RIGHT", "LEFT")
-                if "RIGHT" in name
-                else name.replace("LEFT", "RIGHT")
-            )
+            # name = "_".join(str(x) for x in fields[3].split("_")[0:2])
+            # pair_name = (
+            #     name.replice("RIGHT", "LEFT")
+            #     if "RIGHT" in name
+            #     else name.replace("LEFT", "RIGHT")
+            # )
             pool = fields[4]
             orientation = fields[5]
             amplicon_number = name.split(primer_name_delimiter)[amplicon_number_offset]
             primers_by_name[name] = {
                 "name": name,
-                "pair_name": pair_name,
+                "pair_name": "",
                 "start": start,
                 "end": end,
                 "amplicon_number": amplicon_number,
                 "pool": pool,
                 "orientation": orientation,
             }
-            if orientation == "+":
-                pass
+
+    for primer_name, primer in primers_by_name.items():
+        for potential_pair_name, potential_pair_details in primers_by_name.items():
+            if (
+                potential_pair_details["amplicon_number"] == primer["amplicon_number"]
+                and primer["orientation"] != potential_pair_details["orientation"]
+            ):
+                primers_by_name[primer_name]["pair_name"] = potential_pair_name
+                primers_by_name[potential_pair_name]["pair_name"] = primer_name
 
     return primers_by_name
 
@@ -250,6 +258,12 @@ def get_num_reads(bamfile):
 
 def main(args):
     primers = read_primers(args.primer_bed)
+
+    with open(args.primer_pairs, "w") as f:
+        for primer, data in primers.items():
+            if data["orientation"] == "+":
+                f.write(f"{data['name']}\t{data['pair_name']}\n")
+
     amplicons = primers_to_amplicons(primers)
 
     ## Depth calcs
@@ -313,6 +327,7 @@ if __name__ == "__main__":
     parser.add_argument("--ref", required=True)
     parser.add_argument("--bam", required=True)
     parser.add_argument("--fasta", required=True)
+    parser.add_argument("--primer-pairs", required=True)
     parser.add_argument("--primer-bed")
     parser.add_argument("--min-depth", type=int, default=10)
     parser.add_argument("--max-y-axis-exponent", type=int, default=4)
