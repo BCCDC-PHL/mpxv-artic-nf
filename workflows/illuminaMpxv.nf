@@ -91,11 +91,6 @@ workflow sequenceAnalysis {
 
       alignConsensusToReference(callConsensusFreebayes.out.consensus.combine(ch_preparedRef))
 
-      trimPrimerSequences.out.ptrim.join(callConsensusFreebayes.out.consensus, by: 0)
-          .combine(ch_preparedRef)
-				  .combine(ch_bedFile)
-          .view()
-
       makeQCCSV(trimPrimerSequences.out.ptrim.join(callConsensusFreebayes.out.consensus, by: 0)
           .combine(ch_preparedRef)
 				  .combine(ch_bedFile)
