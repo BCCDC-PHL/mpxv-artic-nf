@@ -4,7 +4,7 @@ process performHostFilter {
 
     label 'process_medium'
 
-    container 'biocontainers/hostile:1.1.0--pyhdfd78af_0'
+    container 'community.wave.seqera.io/library/hostile:1.1.0--15df70fea624a735'
 
     conda 'bioconda::hostile=1.1.0'
 
