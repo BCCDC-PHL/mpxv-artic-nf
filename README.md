@@ -5,7 +5,7 @@ A Nextflow pipeline for running the ARTIC network's fieldbioinformatics tools (h
 
 #### Introduction
 
-This pipeline is based on the [BCCDC-PHL/ncov2019-artic-nf](https://github.com/BCCDC-PHL/ncov2019-artic-nf) pipeline, which is a fork of the [connor-lab/ncov2019-artic-nf](https://github.com/connor-lab/ncov2019-artic-nf) pipeline. It has been modified to support analysis of monkeypox virus.
+This pipeline is based on the [BCCDC-PHL/ncov2019-artic-nf](https://github.com/BCCDC-PHL/ncov2019-artic-nf) pipeline, which is a fork of the [connor-lab/ncov2019-artic-nf](https://github.com/connor-lab/ncov2019-artic-nf) pipeline. It also includes freebayes-based variant calling and additional QC filters, initially introduced in [jts/ncov2019-artic-nf](https://github.com/jts/ncov2019-artic-nf). It has been modified to support analysis of monkeypox virus.
 
 ```mermaid
 flowchart TD
