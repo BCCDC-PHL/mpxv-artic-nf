@@ -250,17 +250,20 @@ process callConsensusFreebayes {
     printf -- "    - tool_name: freebayes\\n"                                                      >> ${sampleName}_callConsensusFreebayes_provenance.yml
     printf -- "      tool_version: \$(freebayes --version | cut -d ' ' -f 3)\\n"                   >> ${sampleName}_callConsensusFreebayes_provenance.yml
     printf -- "      parameters:\\n"                                                               >> ${sampleName}_callConsensusFreebayes_provenance.yml
+    printf -- "        - parameter: -p\\n"                                                         >> ${sampleName}_callConsensusFreebayes_provenance.yml
+    printf -- "          value: 1\\n"                                                              >> ${sampleName}_callConsensusFreebayes_provenance.yml
+    printf -- "        - parameter: -f\\n"                                                         >> ${sampleName}_callConsensusFreebayes_provenance.yml
+    printf -- "          value: ${ref}\\n"                                                              >> ${sampleName}_callConsensusFreebayes_provenance.yml
     printf -- "        - parameter: -F\\n"                                                         >> ${sampleName}_callConsensusFreebayes_provenance.yml
-    printf -- "          value: ${params.minalternateFraction}\\n"                                 >> ${sampleName}_callConsensusFreebayes_provenance.yml
-    printf -- "        - parameter: --min-base-quality\\n"                                         >> ${sampleName}_callConsensusFreebayes_provenance.yml
-    printf -- "          value: ${params.minbasequality}\\n"                                       >> ${sampleName}_callConsensusFreebayes_provenance.yml
-    printf -- "        - parameter: --min-mapping-quality\\n"                                      >> ${sampleName}_callConsensusFreebayes_provenance.yml
-    printf -- "          value: ${params.minmappingquality}\\n"                                    >> ${sampleName}_callConsensusFreebayes_provenance.yml
+    printf -- "          value: 0.2\\n"                                                            >> ${sampleName}_callConsensusFreebayes_provenance.yml
+    printf -- "        - parameter: -C\\n"                                                         >> ${sampleName}_callConsensusFreebayes_provenance.yml
+    printf -- "          value: 1\\n"                                                              >> ${sampleName}_callConsensusFreebayes_provenance.yml
     printf -- "        - parameter: --pooled-continuous\\n"                                        >> ${sampleName}_callConsensusFreebayes_provenance.yml
-    printf -- "          value: \\n"                                                               >> ${sampleName}_callConsensusFreebayes_provenance.yml
+    printf -- "          value: null\\n"                                                           >> ${sampleName}_callConsensusFreebayes_provenance.yml
     printf -- "        - parameter: min-coverage\\n"                                               >> ${sampleName}_callConsensusFreebayes_provenance.yml
     printf -- "          value: ${params.varMinDepth}\\n"                                          >> ${sampleName}_callConsensusFreebayes_provenance.yml
     printf -- "        - parameter: --gvcf\\n"                                                     >> ${sampleName}_callConsensusFreebayes_provenance.yml
+    printf -- "          value: null\\n"                                                           >> ${sampleName}_callConsensusFreebayes_provenance.yml
     printf -- "        - parameter: --gvcf-dont-use-chunk\\n"                                      >> ${sampleName}_callConsensusFreebayes_provenance.yml
     printf -- "          value: true\\n"                                                           >> ${sampleName}_callConsensusFreebayes_provenance.yml
     printf -- "    - tool_name: bcftools\\n"                                                       >> ${sampleName}_callConsensusFreebayes_provenance.yml
@@ -322,12 +325,25 @@ process alignConsensusToReference {
     tuple val(sampleName), path(consensus), path(reference)
 
     output:
-    tuple val(sampleName), path("${sampleName}.consensus.aln.fa")
+    tuple val(sampleName), path("${sampleName}.consensus.aln.fa"), emit: aligned_consensus
+    tuple val(sampleName), path("${sampleName}_alignConsensusToReference_provenance.yml"), emit: provenance
 
     script:
     // Convert multi-line fasta to single line
     awk_string = '/^>/ {printf("\\n%s\\n", $0); next; } { printf("%s", $0); }  END { printf("\\n"); }'
     """
+    printf -- "- process_name: alignConsensusToReference\\n"                                       >> ${sampleName}_alignConsensusToReference_provenance.yml
+    printf -- "  tools:\\n"                                                                        >> ${sampleName}_alignConsensusToReference_provenance.yml
+    printf -- "    - tool_name: mafft\\n"                                                          >> ${sampleName}_alignConsensusToReference_provenance.yml
+    printf -- "      tool_version: \$(mafft --version )\\n"                                        >> ${sampleName}_alignConsensusToReference_provenance.yml
+    printf -- "      parameters:\\n"                                                               >> ${sampleName}_alignConsensusToReference_provenance.yml
+    printf -- "        - parameter: -preservecase\\n"                                              >> ${sampleName}_alignConsensusToReference_provenance.yml
+    printf -- "          value: null\\n"                                                           >> ${sampleName}_alignConsensusToReference_provenance.yml
+    printf -- "        - parameter: keeplength\\n"                                                 >> ${sampleName}_alignConsensusToReference_provenance.yml
+    printf -- "          value: null\\n"                                                           >> ${sampleName}_alignConsensusToReference_provenance.yml
+    printf -- "        - parameter: add\\n"                                                        >> ${sampleName}_alignConsensusToReference_provenance.yml
+    printf -- "          value: null\\n"                                                           >> ${sampleName}_alignConsensusToReference_provenance.yml
+
     mafft \
       --preservecase \
       --keeplength \
