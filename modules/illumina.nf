@@ -219,6 +219,8 @@ process trimPrimerSequences {
     printf -- "      tool_version: \$(ivar version | sed -n '1p' | cut -d ' ' -f 3)\\n"            >> ${sampleName}_trimPrimerSequences_provenance.yml
     printf -- "      parameters:\\n"                                                               >> ${sampleName}_trimPrimerSequences_provenance.yml
     printf -- "        - parameter: -e\\n"                                                         >> ${sampleName}_trimPrimerSequences_provenance.yml
+    printf -- "          value: null\\n"                                                           >> ${sampleName}_trimPrimerSequences_provenance.yml
+
 
     samtools view -F4 -o ${sampleName}.mapped.bam ${bam}
     samtools index ${sampleName}.mapped.bam
