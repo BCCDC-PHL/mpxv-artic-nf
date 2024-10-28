@@ -83,3 +83,76 @@ A script to do some basic QC is provided in `bin/qc.py`. It measures the % of re
 
 #### Output
 A subdirectory for each process in the workflow is created in `--outdir`. A `nml_upload` subdirectory containing dehosted fastq files and consensus sequences is included. 
+
+#### Provenance
+In the output directory for each sample, a provenance file will be written with the following format:
+```
+- process_name: performHostFilter
+  tools:
+    - tool_name: bwa mem
+      tool_version: 0.7.17-r1188
+      parameters:
+        - parameter: -t
+          value: 8
+    - tool_name: samtools
+      tool_version: 1.10
+      parameters:
+        - parameter: sort
+- process_name: readTrimming
+  tools:
+    - tool_name: trim_galore
+      tool_version: 0.6.4_dev
+- process_name: filterResidualAdapters
+  tools:
+    - tool_name: filter_residual_adapters.py
+          sha256: c3d062687abf2bbec48721a562ec606742101eec82887b1f31b6897361da901e
+- process_name: trimPrimerSequences
+  tools:
+    - tool_name: samtools
+      tool_version: 1.10
+      parameters:
+        - parameter: view -F4
+        - parameter: index
+        - parameter: sort
+    - tool_name: ivar
+      tool_version: 1.3.1
+      parameters:
+        - parameter: -e
+          value: null
+- process_name: callConsensusFreebayes
+  tools:
+    - tool_name: freebayes
+      tool_version: v1.3.2-dirty
+      parameters:
+        - parameter: -p
+          value: 1
+        - parameter: -f
+          value: ref.fa
+        - parameter: -F
+          value: 0.2
+        - parameter: -C
+          value: 1
+        - parameter: --pooled-continuous
+          value: null
+        - parameter: min-coverage
+          value: 10
+        - parameter: --gvcf
+          value: null
+        - parameter: --gvcf-dont-use-chunk
+          value: true
+    - tool_name: bcftools
+      tool_version: 1.10.2
+      parameters:
+        - parameter: norm
+        - parameter: consensus
+- input_filename: sample_R1.fastq.gz
+  file_type: fastq-input
+  sha256: 1411f944271b07918cf08393ab102d7760a811fb5b0df12ace104c95bb6ab341
+- input_filename: sample_R2.fastq.gz
+  file_type: fastq-input
+  sha256: 0693d7e519b2e2a294d9d4a79ddfc3830137363b2c8bf9990fc392800a1ca11f
+- pipeline_name: BCCDC-PHL/mpxv-artic-nf
+  pipeline_version: 0.1.2
+  timestamp_analysis_start: 2024-10-28T15:44:15.656920-07:00
+
+```
