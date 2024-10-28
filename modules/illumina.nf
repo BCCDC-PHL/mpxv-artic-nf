@@ -174,16 +174,9 @@ process readMapping {
 
     output:
     tuple val(sampleName), path("${sampleName}.sorted.bam"), path("${sampleName}.sorted.bam.bai"), emit: sorted_bam
-    tuple val(sampleName), path("${sampleName}_readMapping_provenance.yml"), emit: provenance
 
     script:
-    """
-    printf -- "- process_name: readMapping\\n"                                                           >> ${sampleName}_readMapping_provenance.yml
-    printf -- "  tools:\\n"                                                                              >> ${sampleName}_readMapping_provenance.yml
-    printf -- "    - tool_name: multi_ref_alignment_bwa.py\\n"                                           >> ${sampleName}_readMapping_provenance.yml
-    printf -- "          sha256: \$(shasum -a 256 ${projectDir}/bin/multi_ref_alignment_bwa.py | cut -d ' ' -f 1)\\n"      >> ${sampleName}_readMapping_provenance.yml
-
-    
+    """    
     bwa mem -t ${task.cpus} ${ref} ${forward} ${reverse} | \
     samtools sort -o ${sampleName}.sorted.bam
     samtools index ${sampleName}.sorted.bam

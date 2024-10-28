@@ -145,7 +145,6 @@ workflow sequenceAnalysis {
       ch_provenance = performHostFilter.out.provenance
       ch_provenance = ch_provenance.join(readTrimming.out.provenance).map{ it ->              [it[0], [it[1]] << it[2]] }
       ch_provenance = ch_provenance.join(filterResidualAdapters.out.provenance).map{ it ->    [it[0], it[1] << it[2]] }
-      ch_provenance = ch_provenance.join(readMapping.out.provenance).map{ it ->               [it[0], it[1] << it[2]] }
       ch_provenance = ch_provenance.join(trimPrimerSequences.out.provenance).map{ it ->       [it[0], it[1] << it[2]] }
       ch_provenance = ch_provenance.join(callConsensusFreebayes.out.provenance).map{ it ->    [it[0], it[1] << it[2]] }
       ch_provenance = ch_provenance.join(alignConsensusToReference.out.provenance).map{ it ->    [it[0], it[1] << it[2]] }
