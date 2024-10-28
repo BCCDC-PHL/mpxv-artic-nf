@@ -19,13 +19,14 @@ process performHostFilter {
     printf -- "  tools:\\n"                                                                    >> ${sampleName}_performHostFilter_provenance.yml
     printf -- "    - tool_name: bwa mem\\n"                                                    >> ${sampleName}_performHostFilter_provenance.yml
     printf -- "      tool_version: \$(bwa 2>&1 | grep "Version: " | cut -d ' ' -f 2)\\n"       >> ${sampleName}_performHostFilter_provenance.yml
+    printf -- "      subcommand: mem\\n"                                                       >> ${sampleName}_performHostFilter_provenance.yml
     printf -- "      parameters:\\n"                                                           >> ${sampleName}_performHostFilter_provenance.yml
     printf -- "        - parameter: -t\\n"                                                     >> ${sampleName}_performHostFilter_provenance.yml
     printf -- "          value: ${task.cpus}\\n"                                               >> ${sampleName}_performHostFilter_provenance.yml
     printf -- "    - tool_name: samtools\\n"                                                   >> ${sampleName}_performHostFilter_provenance.yml
     printf -- "      tool_version: \$(samtools 2>&1 | grep "Version: " | cut -d ' ' -f 2)\\n"  >> ${sampleName}_performHostFilter_provenance.yml
-    printf -- "      parameters:\\n"                                                           >> ${sampleName}_performHostFilter_provenance.yml
-    printf -- "        - parameter: sort\\n"                                                   >> ${sampleName}_performHostFilter_provenance.yml
+    printf -- "      subcommand: sort\\n"                                                      >> ${sampleName}_performHostFilter_provenance.yml
+
 
     bwa mem -t ${task.cpus} ${params.composite_ref} ${forward} ${reverse} | \
       filter_non_human_reads.py -c ${params.viral_contig_name} > ${sampleName}.viral_and_nonmapping_reads.bam
@@ -204,15 +205,26 @@ process trimPrimerSequences {
     printf -- "  tools:\\n"                                                                        >> ${sampleName}_trimPrimerSequences_provenance.yml
     printf -- "    - tool_name: samtools\\n"                                                       >> ${sampleName}_trimPrimerSequences_provenance.yml
     printf -- "      tool_version: \$(samtools 2>&1 | grep "Version: " | cut -d ' ' -f 2)\\n"      >> ${sampleName}_trimPrimerSequences_provenance.yml
+    printf -- "      subcommand: view\\n"                                                          >> ${sampleName}_trimPrimerSequences_provenance.yml
     printf -- "      parameters:\\n"                                                               >> ${sampleName}_trimPrimerSequences_provenance.yml
-    printf -- "        - parameter: view -F4\\n"                                                   >> ${sampleName}_trimPrimerSequences_provenance.yml
-    printf -- "        - parameter: index\\n"                                                      >> ${sampleName}_trimPrimerSequences_provenance.yml
-    printf -- "        - parameter: sort\\n"                                                       >> ${sampleName}_trimPrimerSequences_provenance.yml
+    printf -- "        - parameter: -F4\\n"                                                        >> ${sampleName}_trimPrimerSequences_provenance.yml
+    printf -- "          value: null\\n"                                                           >> ${sampleName}_trimPrimerSequences_provenance.yml
+    printf -- "    - tool_name: samtools\\n"                                                       >> ${sampleName}_trimPrimerSequences_provenance.yml
+    printf -- "      tool_version: \$(samtools 2>&1 | grep "Version: " | cut -d ' ' -f 2)\\n"      >> ${sampleName}_trimPrimerSequences_provenance.yml
+    printf -- "      subcommand: index\\n"                                                         >> ${sampleName}_trimPrimerSequences_provenance.yml
+    printf -- "    - tool_name: samtools\\n"                                                       >> ${sampleName}_trimPrimerSequences_provenance.yml
+    printf -- "      tool_version: \$(samtools 2>&1 | grep "Version: " | cut -d ' ' -f 2)\\n"      >> ${sampleName}_trimPrimerSequences_provenance.yml
+    printf -- "      subcommand: sort\\n"                                                          >> ${sampleName}_trimPrimerSequences_provenance.yml
     printf -- "    - tool_name: ivar\\n"                                                           >> ${sampleName}_trimPrimerSequences_provenance.yml
     printf -- "      tool_version: \$(ivar version | sed -n '1p' | cut -d ' ' -f 3)\\n"            >> ${sampleName}_trimPrimerSequences_provenance.yml
+    printf -- "      subcommand: trim\\n"                                                          >> ${sampleName}_trimPrimerSequences_provenance.yml
     printf -- "      parameters:\\n"                                                               >> ${sampleName}_trimPrimerSequences_provenance.yml
     printf -- "        - parameter: -e\\n"                                                         >> ${sampleName}_trimPrimerSequences_provenance.yml
     printf -- "          value: null\\n"                                                           >> ${sampleName}_trimPrimerSequences_provenance.yml
+    printf -- "        - parameter: -m\\n"                                                         >> ${sampleName}_trimPrimerSequences_provenance.yml
+    printf -- "          value: ${params.keepLen}\\n"                                              >> ${sampleName}_trimPrimerSequences_provenance.yml
+    printf -- "        - parameter: -q\\n"                                                         >> ${sampleName}_trimPrimerSequences_provenance.yml
+    printf -- "          value: ${params.qualThreshold}\\n"                                        >> ${sampleName}_trimPrimerSequences_provenance.yml
 
 
     samtools view -F4 -o ${sampleName}.mapped.bam ${bam}
