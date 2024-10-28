@@ -2,6 +2,7 @@
 
 nextflow.enable.dsl = 2
 
+include { hash_files }                from '../modules/hash_files.nf'
 include { articDownloadScheme }       from '../modules/utils.nf'
 include { normalizeDepth }            from '../modules/illumina.nf'
 include { performHostFilter }         from '../modules/illumina.nf'
@@ -18,6 +19,9 @@ include { makeQCCSV }         from '../modules/qc.nf'
 include { writeQCSummaryCSV } from '../modules/qc.nf'
 
 include { collateSamples }    from '../modules/upload.nf'
+
+include { pipeline_provenance } from '../modules/provenance.nf'
+include { collect_provenance } from '../modules/provenance.nf'
 
 workflow prepareReferenceFiles {
     // Get reference fasta
@@ -98,11 +102,11 @@ workflow sequenceAnalysis {
 
       readTrimming(performHostFilter.out.fastqPairs)
 
-      filterResidualAdapters(readTrimming.out)
+      filterResidualAdapters(readTrimming.out.trim_out)
 
-      readMapping(filterResidualAdapters.out.combine(ch_preparedRef))
+      readMapping(filterResidualAdapters.out.filter_out.combine(ch_preparedRef))
 
-      trimPrimerSequences(readMapping.out.combine(ch_bedFile))
+      trimPrimerSequences(readMapping.out.sorted_bam.combine(ch_bedFile))
 
       callConsensusFreebayes(trimPrimerSequences.out.ptrim.combine(ch_preparedRef.map{ it[0] }))
 
@@ -114,8 +118,8 @@ workflow sequenceAnalysis {
 
       makeQCCSV(trimPrimerSequences.out.ptrim.join(callConsensusFreebayes.out.consensus, by: 0)
                                    .combine(ch_preparedRef.map{ it[0] })
-				   .combine(ch_bedFile)
-				   .combine(ch_primerPairs))
+				                           .combine(ch_bedFile)
+				                           .combine(ch_primerPairs))
 
       makeQCCSV.out.csv.splitCsv()
                        .unique()
@@ -123,8 +127,31 @@ workflow sequenceAnalysis {
 
       writeQCSummaryCSV(qc.toList())
 
+
       collateSamples(callConsensusFreebayes.out.consensus.join(performHostFilter.out.fastqPairs))
 
+      // Provenance collection processes
+      // [sample_id, [provenance_file_1.yml, provenance_file_2.yml, provenance_file_3.yml...]]
+      // ...and then concatenate them all together in the 'collect_provenance' process.
+      ch_start_time = Channel.of(workflow.start)
+      ch_pipeline_name = Channel.of(workflow.manifest.name)
+      ch_pipeline_version = Channel.of(workflow.manifest.version)
+      ch_pipeline_provenance = pipeline_provenance(ch_pipeline_name.combine(ch_pipeline_version).combine(ch_start_time))
+
+      // FASTQ provenance
+      hash_files(ch_filePairs.map{ it -> [it[0], [it[1], it[2]]] }.combine(Channel.of("fastq-input")))
+
+      // illumina.nf provenance
+      ch_provenance = performHostFilter.out.provenance
+      ch_provenance = ch_provenance.join(readTrimming.out.provenance).map{ it ->              [it[0], [it[1]] << it[2]] }
+      ch_provenance = ch_provenance.join(filterResidualAdapters.out.provenance).map{ it ->    [it[0], it[1] << it[2]] }
+      ch_provenance = ch_provenance.join(readMapping.out.provenance).map{ it ->               [it[0], it[1] << it[2]] }
+      ch_provenance = ch_provenance.join(trimPrimerSequences.out.provenance).map{ it ->       [it[0], it[1] << it[2]] }
+      ch_provenance = ch_provenance.join(callConsensusFreebayes.out.provenance).map{ it ->    [it[0], it[1] << it[2]] }
+      ch_provenance = ch_provenance.join(hash_files.out.provenance).map{ it ->                [it[0], it[1] << it[2]] }
+      ch_provenance = ch_provenance.join(ch_provenance.map{ it -> it[0] }.combine(ch_pipeline_provenance)).map{ it -> [it[0], it[1] << it[2]] }
+      collect_provenance(ch_provenance)
+      
     emit:
       qc_pass = collateSamples.out
 }
