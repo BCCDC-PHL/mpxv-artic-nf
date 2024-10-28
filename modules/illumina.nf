@@ -320,25 +320,12 @@ process alignConsensusToReference {
     tuple val(sampleName), path(consensus), path(reference)
 
     output:
-    tuple val(sampleName), path("${sampleName}.consensus.aln.fa"), emit: aligned_consensus
-    tuple val(sampleName), path("${sampleName}_alignConsensusToReference_provenance.yml"), emit: provenance
+    tuple val(sampleName), path("${sampleName}.consensus.aln.fa")
 
     script:
     // Convert multi-line fasta to single line
     awk_string = '/^>/ {printf("\\n%s\\n", $0); next; } { printf("%s", $0); }  END { printf("\\n"); }'
     """
-    printf -- "- process_name: alignConsensusToReference\\n"                                       >> ${sampleName}_alignConsensusToReference_provenance.yml
-    printf -- "  tools:\\n"                                                                        >> ${sampleName}_alignConsensusToReference_provenance.yml
-    printf -- "    - tool_name: mafft\\n"                                                          >> ${sampleName}_alignConsensusToReference_provenance.yml
-    printf -- "      tool_version: \$(mafft --version )\\n"                                        >> ${sampleName}_alignConsensusToReference_provenance.yml
-    printf -- "      parameters:\\n"                                                               >> ${sampleName}_alignConsensusToReference_provenance.yml
-    printf -- "        - parameter: -preservecase\\n"                                              >> ${sampleName}_alignConsensusToReference_provenance.yml
-    printf -- "          value: null\\n"                                                           >> ${sampleName}_alignConsensusToReference_provenance.yml
-    printf -- "        - parameter: keeplength\\n"                                                 >> ${sampleName}_alignConsensusToReference_provenance.yml
-    printf -- "          value: null\\n"                                                           >> ${sampleName}_alignConsensusToReference_provenance.yml
-    printf -- "        - parameter: add\\n"                                                        >> ${sampleName}_alignConsensusToReference_provenance.yml
-    printf -- "          value: null\\n"                                                           >> ${sampleName}_alignConsensusToReference_provenance.yml
-
     mafft \
       --preservecase \
       --keeplength \
