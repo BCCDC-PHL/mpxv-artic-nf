@@ -91,13 +91,13 @@ In the output directory for each sample, a provenance file will be written with 
   tools:
     - tool_name: bwa mem
       tool_version: 0.7.17-r1188
+      subcommand: mem
       parameters:
         - parameter: -t
           value: 8
     - tool_name: samtools
       tool_version: 1.10
-      parameters:
-        - parameter: sort
+      subcommand: sort
 - process_name: readTrimming
   tools:
     - tool_name: trim_galore
@@ -105,20 +105,31 @@ In the output directory for each sample, a provenance file will be written with 
 - process_name: filterResidualAdapters
   tools:
     - tool_name: filter_residual_adapters.py
-          sha256: c3d062687abf2bbec48721a562ec606742101eec82887b1f31b6897361da901e
+          sha256: c3d062687abf2bbec48721a562ec609742101eec82887b1f31b9997361da901e
 - process_name: trimPrimerSequences
   tools:
     - tool_name: samtools
       tool_version: 1.10
+      subcommand: view
       parameters:
-        - parameter: view -F4
-        - parameter: index
-        - parameter: sort
+        - parameter: -F4
+          value: null
+    - tool_name: samtools
+      tool_version: 1.10
+      subcommand: index
+    - tool_name: samtools
+      tool_version: 1.10
+      subcommand: sort
     - tool_name: ivar
       tool_version: 1.3.1
+      subcommand: trim
       parameters:
         - parameter: -e
           value: null
+        - parameter: -m
+          value: 50
+        - parameter: -q
+          value: 20
 - process_name: callConsensusFreebayes
   tools:
     - tool_name: freebayes
