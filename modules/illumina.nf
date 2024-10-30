@@ -17,7 +17,7 @@ process performHostFilter {
     """
     printf -- "- process_name: performHostFilter\\n"                                           >> ${sampleName}_performHostFilter_provenance.yml
     printf -- "  tools:\\n"                                                                    >> ${sampleName}_performHostFilter_provenance.yml
-    printf -- "    - tool_name: bwa    \\n"                                                    >> ${sampleName}_performHostFilter_provenance.yml
+    printf -- "    - tool_name: bwa\\n"                                                        >> ${sampleName}_performHostFilter_provenance.yml
     printf -- "      tool_version: \$(bwa 2>&1 | grep "Version: " | cut -d ' ' -f 2)\\n"       >> ${sampleName}_performHostFilter_provenance.yml
     printf -- "      subcommand: mem\\n"                                                       >> ${sampleName}_performHostFilter_provenance.yml
     printf -- "      parameters:\\n"                                                           >> ${sampleName}_performHostFilter_provenance.yml
