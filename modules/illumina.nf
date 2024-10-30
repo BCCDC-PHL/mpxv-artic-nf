@@ -17,7 +17,7 @@ process performHostFilter {
     """
     printf -- "- process_name: performHostFilter\\n"                                           >> ${sampleName}_performHostFilter_provenance.yml
     printf -- "  tools:\\n"                                                                    >> ${sampleName}_performHostFilter_provenance.yml
-    printf -- "    - tool_name: bwa mem\\n"                                                    >> ${sampleName}_performHostFilter_provenance.yml
+    printf -- "    - tool_name: bwa    \\n"                                                    >> ${sampleName}_performHostFilter_provenance.yml
     printf -- "      tool_version: \$(bwa 2>&1 | grep "Version: " | cut -d ' ' -f 2)\\n"       >> ${sampleName}_performHostFilter_provenance.yml
     printf -- "      subcommand: mem\\n"                                                       >> ${sampleName}_performHostFilter_provenance.yml
     printf -- "      parameters:\\n"                                                           >> ${sampleName}_performHostFilter_provenance.yml
@@ -130,7 +130,7 @@ process filterResidualAdapters {
     printf -- "- process_name: filterResidualAdapters\\n"                                                 >> ${sampleName}_filterResidualAdapters_provenance.yml
     printf -- "  tools:\\n"                                                                               >> ${sampleName}_filterResidualAdapters_provenance.yml
     printf -- "    - tool_name: filter_residual_adapters.py\\n"                                           >> ${sampleName}_filterResidualAdapters_provenance.yml
-    printf -- "          sha256: \$(shasum -a 256 ${projectDir}/bin/filter_residual_adapters.py | cut -d ' ' -f 1)\\n"      >> ${sampleName}_filterResidualAdapters_provenance.yml
+    printf -- "      sha256: \$(shasum -a 256 ${projectDir}/bin/filter_residual_adapters.py | cut -d ' ' -f 1)\\n"      >> ${sampleName}_filterResidualAdapters_provenance.yml
 
     filter_residual_adapters.py --input_R1 $forward --input_R2 $reverse
     """
@@ -207,8 +207,8 @@ process trimPrimerSequences {
     printf -- "      tool_version: \$(samtools 2>&1 | grep "Version: " | cut -d ' ' -f 2)\\n"      >> ${sampleName}_trimPrimerSequences_provenance.yml
     printf -- "      subcommand: view\\n"                                                          >> ${sampleName}_trimPrimerSequences_provenance.yml
     printf -- "      parameters:\\n"                                                               >> ${sampleName}_trimPrimerSequences_provenance.yml
-    printf -- "        - parameter: -F4\\n"                                                        >> ${sampleName}_trimPrimerSequences_provenance.yml
-    printf -- "          value: null\\n"                                                           >> ${sampleName}_trimPrimerSequences_provenance.yml
+    printf -- "        - parameter: -F\\n"                                                         >> ${sampleName}_trimPrimerSequences_provenance.yml
+    printf -- "          value: 4\\n"                                                              >> ${sampleName}_trimPrimerSequences_provenance.yml
     printf -- "    - tool_name: samtools\\n"                                                       >> ${sampleName}_trimPrimerSequences_provenance.yml
     printf -- "      tool_version: \$(samtools 2>&1 | grep "Version: " | cut -d ' ' -f 2)\\n"      >> ${sampleName}_trimPrimerSequences_provenance.yml
     printf -- "      subcommand: index\\n"                                                         >> ${sampleName}_trimPrimerSequences_provenance.yml

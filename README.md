@@ -89,7 +89,7 @@ In the output directory for each sample, a provenance file will be written with 
 ```
 - process_name: performHostFilter
   tools:
-    - tool_name: bwa mem
+    - tool_name: bwa
       tool_version: 0.7.17-r1188
       subcommand: mem
       parameters:
@@ -105,15 +105,15 @@ In the output directory for each sample, a provenance file will be written with 
 - process_name: filterResidualAdapters
   tools:
     - tool_name: filter_residual_adapters.py
-          sha256: c3d062687abf2bbec48721a562ec609742101eec82887b1f31b9997361da901e
+      sha256: c3d062687abf2bbec48721a562ec609742101eec82887b1f31b9997361da901e
 - process_name: trimPrimerSequences
   tools:
     - tool_name: samtools
       tool_version: 1.10
       subcommand: view
       parameters:
-        - parameter: -F4
-          value: null
+        - parameter: -F
+          value: 4
     - tool_name: samtools
       tool_version: 1.10
       subcommand: index
