@@ -11,9 +11,23 @@ process performHostFilter {
 
     output:
     tuple val(sampleName), path("${sampleName}_hostfiltered_R1.fastq.gz"), path("${sampleName}_hostfiltered_R2.fastq.gz"), emit: fastqPairs
+    tuple val(sampleName), path("${sampleName}_performHostFilter_provenance.yml"), emit: provenance
 
     script:
     """
+    printf -- "- process_name: performHostFilter\\n"                                           >> ${sampleName}_performHostFilter_provenance.yml
+    printf -- "  tools:\\n"                                                                    >> ${sampleName}_performHostFilter_provenance.yml
+    printf -- "    - tool_name: bwa\\n"                                                        >> ${sampleName}_performHostFilter_provenance.yml
+    printf -- "      tool_version: \$(bwa 2>&1 | grep "Version: " | cut -d ' ' -f 2)\\n"       >> ${sampleName}_performHostFilter_provenance.yml
+    printf -- "      subcommand: mem\\n"                                                       >> ${sampleName}_performHostFilter_provenance.yml
+    printf -- "      parameters:\\n"                                                           >> ${sampleName}_performHostFilter_provenance.yml
+    printf -- "        - parameter: -t\\n"                                                     >> ${sampleName}_performHostFilter_provenance.yml
+    printf -- "          value: ${task.cpus}\\n"                                               >> ${sampleName}_performHostFilter_provenance.yml
+    printf -- "    - tool_name: samtools\\n"                                                   >> ${sampleName}_performHostFilter_provenance.yml
+    printf -- "      tool_version: \$(samtools 2>&1 | grep "Version: " | cut -d ' ' -f 2)\\n"  >> ${sampleName}_performHostFilter_provenance.yml
+    printf -- "      subcommand: sort\\n"                                                      >> ${sampleName}_performHostFilter_provenance.yml
+
+
     bwa mem -t ${task.cpus} ${params.composite_ref} ${forward} ${reverse} | \
       filter_non_human_reads.py -c ${params.viral_contig_name} > ${sampleName}.viral_and_nonmapping_reads.bam
     samtools sort -@ ${task.cpus} -n ${sampleName}.viral_and_nonmapping_reads.bam | \
@@ -72,10 +86,16 @@ process readTrimming {
     tuple val(sampleName), path(forward), path(reverse)
 
     output:
-    tuple val(sampleName), path("*_val_1.fq.gz"), path("*_val_2.fq.gz"), optional: true
+    tuple val(sampleName), path("*_val_1.fq.gz"), path("*_val_2.fq.gz"), optional: true , emit: trim_out
+    tuple val(sampleName), path("${sampleName}_readTrimming_provenance.yml"), emit: provenance
 
     script:
     """
+    printf -- "- process_name: readTrimming\\n"                                                                                >> ${sampleName}_readTrimming_provenance.yml
+    printf -- "  tools:\\n"                                                                                                    >> ${sampleName}_readTrimming_provenance.yml
+    printf -- "    - tool_name: trim_galore\\n"                                                                                >> ${sampleName}_readTrimming_provenance.yml
+    printf -- "      tool_version: \$(trim_galore --version | sed -n '4p' | sed 's/version //' | tr -d '[:space:]')\\n"        >> ${sampleName}_readTrimming_provenance.yml
+
     if [[ \$(gunzip -c ${forward} | head -n4 | wc -l) -eq 0 ]]; then
       cp ${forward} ${sampleName}_hostfiltered_val_1.fq.gz
       cp ${reverse} ${sampleName}_hostfiltered_val_2.fq.gz
@@ -102,10 +122,16 @@ process filterResidualAdapters {
     tuple val(sampleName), path(forward), path(reverse)
 
     output:
-    tuple val(sampleName), path("*1_posttrim_filter.fq.gz"), path("*2_posttrim_filter.fq.gz")
+    tuple val(sampleName), path("*1_posttrim_filter.fq.gz"), path("*2_posttrim_filter.fq.gz"), emit: filter_out
+    tuple val(sampleName), path("${sampleName}_filterResidualAdapters_provenance.yml"), emit: provenance
 
     script:
     """
+    printf -- "- process_name: filterResidualAdapters\\n"                                                 >> ${sampleName}_filterResidualAdapters_provenance.yml
+    printf -- "  tools:\\n"                                                                               >> ${sampleName}_filterResidualAdapters_provenance.yml
+    printf -- "    - tool_name: filter_residual_adapters.py\\n"                                           >> ${sampleName}_filterResidualAdapters_provenance.yml
+    printf -- "      sha256: \$(shasum -a 256 ${projectDir}/bin/filter_residual_adapters.py | cut -d ' ' -f 1)\\n"      >> ${sampleName}_filterResidualAdapters_provenance.yml
+
     filter_residual_adapters.py --input_R1 $forward --input_R2 $reverse
     """
 }
@@ -148,10 +174,10 @@ process readMapping {
     tuple val(sampleName), path(forward), path(reverse), path(ref), path("*")
 
     output:
-    tuple val(sampleName), path("${sampleName}.sorted.bam"), path("${sampleName}.sorted.bam.bai")
+    tuple val(sampleName), path("${sampleName}.sorted.bam"), path("${sampleName}.sorted.bam.bai"), emit: sorted_bam
 
     script:
-    """
+    """    
     bwa mem -t ${task.cpus} ${ref} ${forward} ${reverse} | \
     samtools sort -o ${sampleName}.sorted.bam
     samtools index ${sampleName}.sorted.bam
@@ -171,9 +197,36 @@ process trimPrimerSequences {
     output:
     tuple val(sampleName), path("${sampleName}.mapped.bam"), path("${sampleName}.mapped.bam.bai"), emit: mapped
     tuple val(sampleName), path("${sampleName}.mapped.primertrimmed.sorted.bam"), path("${sampleName}.mapped.primertrimmed.sorted.bam.bai" ), emit: ptrim
+    tuple val(sampleName), path("${sampleName}_trimPrimerSequences_provenance.yml"), emit: provenance
 
     script:
     """
+    printf -- "- process_name: trimPrimerSequences\\n"                                             >> ${sampleName}_trimPrimerSequences_provenance.yml
+    printf -- "  tools:\\n"                                                                        >> ${sampleName}_trimPrimerSequences_provenance.yml
+    printf -- "    - tool_name: samtools\\n"                                                       >> ${sampleName}_trimPrimerSequences_provenance.yml
+    printf -- "      tool_version: \$(samtools 2>&1 | grep "Version: " | cut -d ' ' -f 2)\\n"      >> ${sampleName}_trimPrimerSequences_provenance.yml
+    printf -- "      subcommand: view\\n"                                                          >> ${sampleName}_trimPrimerSequences_provenance.yml
+    printf -- "      parameters:\\n"                                                               >> ${sampleName}_trimPrimerSequences_provenance.yml
+    printf -- "        - parameter: -F\\n"                                                         >> ${sampleName}_trimPrimerSequences_provenance.yml
+    printf -- "          value: 4\\n"                                                              >> ${sampleName}_trimPrimerSequences_provenance.yml
+    printf -- "    - tool_name: samtools\\n"                                                       >> ${sampleName}_trimPrimerSequences_provenance.yml
+    printf -- "      tool_version: \$(samtools 2>&1 | grep "Version: " | cut -d ' ' -f 2)\\n"      >> ${sampleName}_trimPrimerSequences_provenance.yml
+    printf -- "      subcommand: index\\n"                                                         >> ${sampleName}_trimPrimerSequences_provenance.yml
+    printf -- "    - tool_name: samtools\\n"                                                       >> ${sampleName}_trimPrimerSequences_provenance.yml
+    printf -- "      tool_version: \$(samtools 2>&1 | grep "Version: " | cut -d ' ' -f 2)\\n"      >> ${sampleName}_trimPrimerSequences_provenance.yml
+    printf -- "      subcommand: sort\\n"                                                          >> ${sampleName}_trimPrimerSequences_provenance.yml
+    printf -- "    - tool_name: ivar\\n"                                                           >> ${sampleName}_trimPrimerSequences_provenance.yml
+    printf -- "      tool_version: \$(ivar version | sed -n '1p' | cut -d ' ' -f 3)\\n"            >> ${sampleName}_trimPrimerSequences_provenance.yml
+    printf -- "      subcommand: trim\\n"                                                          >> ${sampleName}_trimPrimerSequences_provenance.yml
+    printf -- "      parameters:\\n"                                                               >> ${sampleName}_trimPrimerSequences_provenance.yml
+    printf -- "        - parameter: -e\\n"                                                         >> ${sampleName}_trimPrimerSequences_provenance.yml
+    printf -- "          value: null\\n"                                                           >> ${sampleName}_trimPrimerSequences_provenance.yml
+    printf -- "        - parameter: -m\\n"                                                         >> ${sampleName}_trimPrimerSequences_provenance.yml
+    printf -- "          value: ${params.keepLen}\\n"                                              >> ${sampleName}_trimPrimerSequences_provenance.yml
+    printf -- "        - parameter: -q\\n"                                                         >> ${sampleName}_trimPrimerSequences_provenance.yml
+    printf -- "          value: ${params.qualThreshold}\\n"                                        >> ${sampleName}_trimPrimerSequences_provenance.yml
+
+
     samtools view -F4 -o ${sampleName}.mapped.bam ${bam}
     samtools index ${sampleName}.mapped.bam
     ivar trim -e -i ${sampleName}.mapped.bam -b ${bedfile} -m ${params.keepLen} -q ${params.qualThreshold} -f ${params.primer_pairs_tsv} -p ivar.out
@@ -195,9 +248,37 @@ process callConsensusFreebayes {
     output:
     tuple val(sampleName), path("${sampleName}.consensus.fa"), emit: consensus
     tuple val(sampleName), path("${sampleName}.variants.norm.vcf"), emit: variants
+    tuple val(sampleName), path("${sampleName}_callConsensusFreebayes_provenance.yml"), emit: provenance
 
     script:
     """
+    printf -- "- process_name: callConsensusFreebayes\\n"                                          >> ${sampleName}_callConsensusFreebayes_provenance.yml
+    printf -- "  tools:\\n"                                                                        >> ${sampleName}_callConsensusFreebayes_provenance.yml
+    printf -- "    - tool_name: freebayes\\n"                                                      >> ${sampleName}_callConsensusFreebayes_provenance.yml
+    printf -- "      tool_version: \$(freebayes --version | cut -d ' ' -f 3)\\n"                   >> ${sampleName}_callConsensusFreebayes_provenance.yml
+    printf -- "      parameters:\\n"                                                               >> ${sampleName}_callConsensusFreebayes_provenance.yml
+    printf -- "        - parameter: -p\\n"                                                         >> ${sampleName}_callConsensusFreebayes_provenance.yml
+    printf -- "          value: 1\\n"                                                              >> ${sampleName}_callConsensusFreebayes_provenance.yml
+    printf -- "        - parameter: -f\\n"                                                         >> ${sampleName}_callConsensusFreebayes_provenance.yml
+    printf -- "          value: ${ref}\\n"                                                              >> ${sampleName}_callConsensusFreebayes_provenance.yml
+    printf -- "        - parameter: -F\\n"                                                         >> ${sampleName}_callConsensusFreebayes_provenance.yml
+    printf -- "          value: 0.2\\n"                                                            >> ${sampleName}_callConsensusFreebayes_provenance.yml
+    printf -- "        - parameter: -C\\n"                                                         >> ${sampleName}_callConsensusFreebayes_provenance.yml
+    printf -- "          value: 1\\n"                                                              >> ${sampleName}_callConsensusFreebayes_provenance.yml
+    printf -- "        - parameter: --pooled-continuous\\n"                                        >> ${sampleName}_callConsensusFreebayes_provenance.yml
+    printf -- "          value: null\\n"                                                           >> ${sampleName}_callConsensusFreebayes_provenance.yml
+    printf -- "        - parameter: min-coverage\\n"                                               >> ${sampleName}_callConsensusFreebayes_provenance.yml
+    printf -- "          value: ${params.varMinDepth}\\n"                                          >> ${sampleName}_callConsensusFreebayes_provenance.yml
+    printf -- "        - parameter: --gvcf\\n"                                                     >> ${sampleName}_callConsensusFreebayes_provenance.yml
+    printf -- "          value: null\\n"                                                           >> ${sampleName}_callConsensusFreebayes_provenance.yml
+    printf -- "        - parameter: --gvcf-dont-use-chunk\\n"                                      >> ${sampleName}_callConsensusFreebayes_provenance.yml
+    printf -- "          value: true\\n"                                                           >> ${sampleName}_callConsensusFreebayes_provenance.yml
+    printf -- "    - tool_name: bcftools\\n"                                                       >> ${sampleName}_callConsensusFreebayes_provenance.yml
+    printf -- "      tool_version: \$(bcftools 2>&1 | sed -n '4p' | cut -d ' ' -f 2)\\n"           >> ${sampleName}_callConsensusFreebayes_provenance.yml
+    printf -- "      parameters:\\n"                                                               >> ${sampleName}_callConsensusFreebayes_provenance.yml
+    printf -- "        - parameter: norm\\n"                                                       >> ${sampleName}_callConsensusFreebayes_provenance.yml
+    printf -- "        - parameter: consensus\\n"                                                  >> ${sampleName}_callConsensusFreebayes_provenance.yml
+
     # the sed is to fix the header until a release is made with this fix
     # https://github.com/freebayes/freebayes/pull/549
     freebayes -p 1 \
